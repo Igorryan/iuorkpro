@@ -1,10 +1,16 @@
-import { View, Text } from 'react-native';
+import 'react-native-get-random-values';
+import { ThemeProvider } from 'styled-components';
+import theme from '@theme/index';
+import AppProvider from '@hooks/index';
+import { Routes } from '@routes/index';
 
 export default function App() {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>iWork Pro (Profissional)</Text>
-    </View>
+    <ThemeProvider theme={theme}>
+      <AppProvider>
+        <Routes />
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 
