@@ -9,7 +9,11 @@
       "@screens/*": ["./src/screens/*"],
       "@hooks/*": ["./src/hooks/*"],
       "@theme/*": ["./src/theme/*"],
-      "@config/*": ["./src/config/*"]
+      "@config/*": ["./src/config/*"],
+      "@components/*": ["./src/components/*"],
+      "@functions/*": ["./src/functions/*"],
+      "@api/*": ["./src/api/*"],
+      "@types/*": ["./src/types/*"]
     }
   }
 }

@@ -3,7 +3,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Login from '@screens/Auth/Login';
 import SignUp from '@screens/Auth/SignUp';
 import Profile from '@screens/Profile';
+import Address from '@screens/Address';
 import ServiceNew from '@screens/ServiceNew';
+import EditProfile from '@screens/EditProfile';
 import { useAuth } from '@hooks/auth';
 
 export type RootStackParamList = {
@@ -11,6 +13,8 @@ export type RootStackParamList = {
   SignUp: undefined;
   Profile: undefined;
   ServiceNew: undefined;
+  Address: undefined;
+  EditProfile: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -24,6 +28,8 @@ export const StackRoutes: React.FC = () => {
         <>
           <Stack.Screen name="Profile" component={Profile} />
           <Stack.Screen name="ServiceNew" component={ServiceNew} />
+          <Stack.Screen name="Address" component={Address} />
+          <Stack.Screen name="EditProfile" component={EditProfile} />
         </>
       ) : (
         <>

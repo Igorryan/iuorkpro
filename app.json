@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,7 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.iworkpro"
+      "bundleIdentifier": "com.anonymous.iworkpro",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Precisamos de acesso à câmera para tirar fotos do seu perfil.",
+        "NSPhotoLibraryUsageDescription": "Precisamos de acesso à sua biblioteca para selecionar uma foto de perfil."
+      }
     },
     "android": {
       "adaptiveIcon": {

@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
-
-const envUrl = process.env.EXPO_PUBLIC_API_URL;
+import { EXPO_PUBLIC_API_URL } from '@env';
 
 const defaultLocalUrl = Platform.select({
   ios: 'http://127.0.0.1:3333',
@@ -9,6 +8,6 @@ const defaultLocalUrl = Platform.select({
   default: 'http://127.0.0.1:3333',
 });
 
-export const api = axios.create({ baseURL: envUrl || defaultLocalUrl });
+export const api = axios.create({ baseURL: EXPO_PUBLIC_API_URL || defaultLocalUrl });
 
 
