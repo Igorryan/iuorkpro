@@ -1,5 +1,6 @@
 module.exports = function (api) {
   api.cache(true);
+
   return {
     presets: ['babel-preset-expo'],
     plugins: [
@@ -8,14 +9,18 @@ module.exports = function (api) {
         {
           root: ['./src'],
           alias: {
+            '@assets': './src/assets',
+            '@components': './src/components',
             '@routes': './src/routes',
             '@screens': './src/screens',
-            '@hooks': './src/hooks',
-            '@theme': './src/theme',
-            '@config': './src/config',
-            '@components': './src/components',
+            '@storage': './src/storage',
+            '@utils': './src/utils',
             '@functions': './src/functions',
+            '@interfaces': './src/interfaces',
+            '@hooks': './src/hooks',
+            '@config': './src/config',
             '@api': './src/api',
+            '@theme': './src/theme',
           },
         },
       ],
@@ -30,8 +35,7 @@ module.exports = function (api) {
           allowUndefined: true,
         },
       ],
+
     ],
   };
 };
-
-

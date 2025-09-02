@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, ScrollView } from 'react-native';
 import theme from '@theme/index';
 import { useAuth } from '@hooks/auth';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -13,7 +13,7 @@ const Profile: React.FC = () => {
   const { user, logout } = useAuth();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [orders, setOrders] = React.useState<Array<{ id: string; status: string; createdAt: string; service: { id: string; title: string } }>>([]);
-  const [services, setServices] = React.useState<Array<{ id: string; name: string; description: string; price: number | null }>>([]);
+  const [services, setServices] = React.useState<Array<{ id: string; name: string; description: string; price: number | null; images?: string[] }>>([]);
   const [selectedAddress, setSelectedAddress] = React.useState<IAddress | undefined>(undefined);
 
   React.useEffect(() => {
@@ -110,6 +110,20 @@ const Profile: React.FC = () => {
                 <Text style={{ color: theme.COLORS.PRIMARY }}>
                   Preço: {item.price != null ? `R$ ${item.price.toFixed(2)}` : 'Sob orçamento'}
                 </Text>
+                {!!item.images?.length && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }} contentContainerStyle={{ paddingRight: 4 }}>
+                    {item.images.map((url) => (
+                      <Image key={url} source={{ uri: url }} style={{ width: 90, height: 90, borderRadius: 8, marginRight: 8, backgroundColor: '#eee' }} />
+                    ))}
+                  </ScrollView>
+                )}
+                <View style={{ height: 8 }} />
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ServiceImagesUpload', { serviceId: item.id })}
+                  style={{ backgroundColor: theme.COLORS.SECONDARY, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start' }}
+                >
+                  <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Adicionar fotos</Text>
+                </TouchableOpacity>
               </View>
             )}
             ListEmptyComponent={() => (
