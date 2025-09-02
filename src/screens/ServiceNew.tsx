@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import theme from '@theme/index';
 import { api } from '@config/api';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +16,7 @@ const ServiceNew: React.FC = () => {
   const [price, setPrice] = React.useState('');
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [categoryId, setCategoryId] = React.useState<string | undefined>(undefined);
-  const [imagesText, setImagesText] = React.useState('');
+  const [pickedUris, setPickedUris] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -36,16 +37,12 @@ const ServiceNew: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
-      const images = imagesText
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => !!s);
       const payload: any = {
         title: title.trim(),
         description: description.trim(),
         pricingType,
         categoryId: categoryId ?? undefined,
-        images: images.length ? images : undefined,
+        images: undefined,
       };
       if (pricingType === 'FIXED' || pricingType === 'HOURLY') {
         const numericPrice = Number(price.replace(',', '.'));
@@ -56,7 +53,18 @@ const ServiceNew: React.FC = () => {
         }
         payload.price = numericPrice;
       }
-      await api.post('/services', payload);
+      // 1) Cria o serviço
+      const { data: created } = await api.post('/services', payload);
+
+      // 2) Se houver imagens selecionadas localmente, envia após criar
+      if (pickedUris.length) {
+        const form = new FormData();
+        pickedUris.forEach((uri, idx) => {
+          const name = `service-${created.id}-${Date.now()}-${idx}.jpg`;
+          form.append('files', { uri, name, type: 'image/jpeg' } as any);
+        });
+        await api.post(`/services/${created.id}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
       Alert.alert('Sucesso', 'Serviço cadastrado com sucesso!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -66,7 +74,14 @@ const ServiceNew: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, description, pricingType, price, categoryId, imagesText, navigation]);
+  }, [title, description, pricingType, price, categoryId, pickedUris, navigation]);
+
+  async function pickImages() {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.7 });
+    if ((res as any).canceled) return;
+    const newUris = (res.assets || []).map((a) => a.uri).filter(Boolean) as string[];
+    setPickedUris((prev) => [...prev, ...newUris]);
+  }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }} contentContainerStyle={{ padding: 24 }}>
@@ -107,7 +122,9 @@ const ServiceNew: React.FC = () => {
               backgroundColor: pricingType === pt ? theme.COLORS.SECONDARY : '#eee',
             }}
           >
-            <Text style={{ color: pricingType === pt ? theme.COLORS.WHITE : theme.COLORS.PRIMARY }}>{pt}</Text>
+            <Text style={{ color: pricingType === pt ? theme.COLORS.WHITE : theme.COLORS.PRIMARY }}>
+              {pt === 'BUDGET' ? 'Orçamento' : pt === 'FIXED' ? 'Preço fixo' : 'Por hora'}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -146,14 +163,15 @@ const ServiceNew: React.FC = () => {
         ))}
       </View>
 
-      <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Imagens (URLs, separadas por vírgula)</Text>
-      <TextInput
-        placeholder="https://... , https://..."
-        placeholderTextColor={theme.COLORS.SECONDARY}
-        value={imagesText}
-        onChangeText={setImagesText}
-        style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 16 }}
-      />
+      <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Fotos do serviço</Text>
+      <TouchableOpacity onPress={pickImages} style={{ backgroundColor: theme.COLORS.PRIMARY, padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Escolher fotos</Text>
+      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        {pickedUris.map((u) => (
+          <Image key={u} source={{ uri: u }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }} />
+        ))}
+      </View>
 
       <TouchableOpacity
         disabled={isSubmitting}

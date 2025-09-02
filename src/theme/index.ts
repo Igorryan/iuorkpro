@@ -36,7 +36,7 @@ export default {
     XXL: 32,
   },
   SHADOW: {
-    // FOCUSONBACKGROUND: '0px 4px 19px rgba(0, 0, 0, 0.07)',
+    FOCUSONBACKGROUND: '0px 4px 19px rgba(0, 0, 0, 0.07)',
   },
   MAPSTYLE: [
     {

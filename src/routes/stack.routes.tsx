@@ -8,10 +8,12 @@ import ServiceNew from '@screens/ServiceNew';
 import EditProfile from '@screens/EditProfile';
 import ServiceImagesUpload from '@screens/ServiceImagesUpload';
 import { useAuth } from '@hooks/auth';
+import { TabRoutes } from './tab.routes';
 
 export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
+  Tabs: undefined;
   Profile: undefined;
   ServiceNew: undefined;
   Address: undefined;
@@ -25,9 +27,10 @@ export const StackRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isAuthenticated ? 'Tabs' : 'Login'}>
       {isAuthenticated ? (
         <>
+          <Stack.Screen name="Tabs" component={TabRoutes} />
           <Stack.Screen name="Profile" component={Profile} />
           <Stack.Screen name="ServiceNew" component={ServiceNew} />
           <Stack.Screen name="Address" component={Address} />

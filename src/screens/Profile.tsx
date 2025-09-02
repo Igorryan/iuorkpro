@@ -1,5 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, ScrollView } from 'react-native';
+import styled from 'styled-components/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import theme from '@theme/index';
 import { useAuth } from '@hooks/auth';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -46,120 +49,275 @@ const Profile: React.FC = () => {
     }, []),
   );
 
+  function handleDeleteService(id: string) {
+    (async () => {
+      try {
+        await api.delete(`/services/${id}`);
+        const res = await api.get('/services/mine');
+        setServices(res.data);
+      } catch {}
+    })();
+  }
+
   function renderSelectedAddress() {
     const title = selectedAddress?.street
       ? `${selectedAddress.street}${selectedAddress.number ? `, ${selectedAddress.number}` : ''}`
       : 'Endereço não definido';
     const subtitle = selectedAddress?.city ? `${selectedAddress.city} - ${selectedAddress.state}` : 'Defina seu endereço para receber pedidos próximos.';
     return (
-      <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: theme.COLORS.GREY_20 }}>
-        <Text style={{ color: theme.COLORS.PRIMARY, fontFamily: theme.FONT_FAMILY.BOLD }}>{title}</Text>
-        <Text style={{ color: theme.COLORS.PRIMARY, opacity: 0.8 }}>{subtitle}</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Address')}
-          style={{ alignSelf: 'flex-start', backgroundColor: theme.COLORS.SECONDARY, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginTop: 10 }}
-        >
-          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>{selectedAddress ? 'Alterar endereço' : 'Definir endereço'}</Text>
-        </TouchableOpacity>
-      </View>
+      <SectionCard>
+        <SectionHeader>
+          <Icon name="location-outline" />
+          <SectionTitle>Endereço</SectionTitle>
+        </SectionHeader>
+        <SectionBody>
+          <PrimaryText>{title}</PrimaryText>
+          <SecondaryText>{subtitle}</SecondaryText>
+          <ButtonsRow>
+            <PrimaryButton onPress={() => navigation.navigate('Address')}>
+              <ButtonTextPrimary>{selectedAddress ? 'Alterar endereço' : 'Definir endereço'}</ButtonTextPrimary>
+            </PrimaryButton>
+          </ButtonsRow>
+        </SectionBody>
+      </SectionCard>
     );
   }
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND, padding: 24, paddingBottom: 0 }}>
-      <Text style={{ fontSize: theme.FONT_SIZE.XL, fontFamily: theme.FONT_FAMILY.BOLD, color: theme.COLORS.PRIMARY, marginBottom: 4 }}>Meu Perfil</Text>
-      <Text style={{ fontSize: theme.FONT_SIZE.MD, color: theme.COLORS.PRIMARY, marginBottom: 4 }}>Nome: {user?.name}</Text>
-      <Text style={{ fontSize: theme.FONT_SIZE.MD, color: theme.COLORS.PRIMARY, marginBottom: 16 }}>Email: {user?.email || '-'}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }}>
+      <Container>
+        <Content>
+        <ScreenTitle>Meu Perfil</ScreenTitle>
 
-      {user?.role === 'PRO' && (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('EditProfile')}
-          style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}
-        >
-          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Editar perfil</Text>
-        </TouchableOpacity>
-      )}
-
-      {renderSelectedAddress()}
-
-      {user?.role === 'PRO' && (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('ServiceNew')}
-          style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}
-        >
-          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Cadastrar serviço</Text>
-        </TouchableOpacity>
-      )}
-      {user?.role === 'PRO' && (
-        <>
-          <Text style={{ fontSize: theme.FONT_SIZE.LG, color: theme.COLORS.PRIMARY, marginTop: 8, marginBottom: 8 }}>
-            Meus Serviços
-          </Text>
-          <FlatList
-            data={services}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: 8 }}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-            renderItem={({ item }) => (
-              <View style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12 }}>
-                <Text style={{ color: theme.COLORS.PRIMARY, fontFamily: theme.FONT_FAMILY.BOLD }}>{item.name}</Text>
-                {!!item.description && (
-                  <Text style={{ color: theme.COLORS.PRIMARY }} numberOfLines={2}>
-                    {item.description}
-                  </Text>
-                )}
-                <Text style={{ color: theme.COLORS.PRIMARY }}>
-                  Preço: {item.price != null ? `R$ ${item.price.toFixed(2)}` : 'Sob orçamento'}
-                </Text>
-                {!!item.images?.length && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }} contentContainerStyle={{ paddingRight: 4 }}>
-                    {item.images.map((url) => (
-                      <Image key={url} source={{ uri: url }} style={{ width: 90, height: 90, borderRadius: 8, marginRight: 8, backgroundColor: '#eee' }} />
-                    ))}
-                  </ScrollView>
-                )}
-                <View style={{ height: 8 }} />
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('ServiceImagesUpload', { serviceId: item.id })}
-                  style={{ backgroundColor: theme.COLORS.SECONDARY, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start' }}
-                >
-                  <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Adicionar fotos</Text>
-                </TouchableOpacity>
-              </View>
+        <SectionCard>
+          <SectionHeader>
+            <Icon name="person-circle-outline" />
+            <SectionTitle>Perfil</SectionTitle>
+          </SectionHeader>
+          <SectionBody>
+            <PrimaryText>{user?.name}</PrimaryText>
+            <SecondaryText>{user?.email || '-'}</SecondaryText>
+            {user?.role === 'PRO' && (
+              <ButtonsRow>
+                <PrimaryButton onPress={() => navigation.navigate('EditProfile')}>
+                  <ButtonTextPrimary>Editar perfil</ButtonTextPrimary>
+                </PrimaryButton>
+              </ButtonsRow>
             )}
-            ListEmptyComponent={() => (
-              <Text style={{ color: theme.COLORS.PRIMARY, opacity: 0.7 }}>Nenhum serviço cadastrado.</Text>
-            )}
-            style={{ flexGrow: 0, maxHeight: 220 }}
-          />
-        </>
-      )}
-      <Text style={{ fontSize: theme.FONT_SIZE.LG, color: theme.COLORS.PRIMARY, marginTop: 8, marginBottom: 8 }}>
-        Pedidos
-      </Text>
-      <FlatList
-        data={orders}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 16 }}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        renderItem={({ item }) => (
-          <View style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12 }}>
-            <Text style={{ color: theme.COLORS.PRIMARY, fontFamily: theme.FONT_FAMILY.BOLD }}>{item.service.title}</Text>
-            <Text style={{ color: theme.COLORS.PRIMARY }}>Status: {item.status}</Text>
-            <Text style={{ color: theme.COLORS.PRIMARY }}>Criado em: {new Date(item.createdAt).toLocaleString()}</Text>
-          </View>
-        )}
-        ListEmptyComponent={() => (
-          <Text style={{ color: theme.COLORS.PRIMARY, opacity: 0.7 }}>Nenhum pedido encontrado.</Text>
-        )}
-        style={{ flexGrow: 0, maxHeight: 260 }}
-      />
-      <TouchableOpacity onPress={logout} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16, marginBottom: 24 }}>
-        <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Sair</Text>
-      </TouchableOpacity>
-    </View>
+          </SectionBody>
+        </SectionCard>
+
+        {renderSelectedAddress()}
+
+        {/* Serviços e Pedidos foram movidos para as abas "Serviços" e "Pedidos" */}
+
+        <SectionCard>
+          <SectionHeader>
+            <Icon name="settings-outline" />
+            <SectionTitle>Ações</SectionTitle>
+          </SectionHeader>
+          <ButtonsRow>
+            <DangerButton onPress={logout}>
+              <ButtonTextDanger>Sair</ButtonTextDanger>
+            </DangerButton>
+          </ButtonsRow>
+        </SectionCard>
+        </Content>
+      </Container>
+    </SafeAreaView>
   );
 };
 
 export default Profile;
 
+
+const Container = styled.ScrollView`
+  flex: 1;
+  background-color: ${theme.COLORS.BACKGROUND};
+`;
+
+const Content = styled.View`
+  padding: 24px;
+  padding-bottom: 24px;
+`;
+
+const ScreenTitle = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+  font-size: ${theme.FONT_SIZE.XL}px;
+  margin-bottom: 12px;
+`;
+
+const SectionCard = styled.View`
+  background-color: ${theme.COLORS.WHITE};
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid ${theme.COLORS.GREY_10};
+`;
+
+const SectionHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const SectionTitle = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+  font-size: ${theme.FONT_SIZE.LG}px;
+  margin-left: 6px;
+`;
+
+const SectionBody = styled.View``;
+
+const PrimaryText = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.MEDIUM};
+`;
+
+const SecondaryText = styled.Text`
+  color: ${theme.COLORS.GREY_80};
+`;
+
+const ButtonsRow = styled.View`
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+const BaseButton = styled.TouchableOpacity`
+  border-radius: 10px;
+  padding: 12px 14px;
+  align-items: center;
+  justify-content: center;
+`;
+
+const PrimaryButton = styled(BaseButton)`
+  background-color: ${theme.COLORS.SECONDARY};
+`;
+
+const SecondaryButton = styled(BaseButton)`
+  background-color: ${theme.COLORS.GREY_20}90;
+`;
+
+const DangerButton = styled(BaseButton)`
+  background-color: ${theme.COLORS.WARNING}33;
+`;
+
+const ButtonTextPrimary = styled.Text`
+  color: ${theme.COLORS.WHITE};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+`;
+
+const ButtonTextSecondary = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.MEDIUM};
+`;
+
+const ButtonTextDanger = styled.Text`
+  color: ${theme.COLORS.WARNING};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+`;
+
+const Icon = styled(Ionicons).attrs({ size: 22, color: theme.COLORS.PRIMARY })``;
+
+const Spacer = styled.View<{ height?: number }>`
+  height: ${(p) => p.height || 8}px;
+`;
+
+const Card = styled.View`
+  background-color: ${theme.COLORS.WHITE};
+  border: 1px solid ${theme.COLORS.GREY_10};
+  border-radius: 12px;
+  padding: 12px;
+`;
+
+const CardTitle = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+`;
+
+const CardSubtitle = styled.Text`
+  color: ${theme.COLORS.GREY_80};
+`;
+
+const CardText = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+`;
+
+const ImagesRow = styled.View`
+  flex-direction: row;
+  margin-top: 8px;
+`;
+
+const ImageBox = styled.View`
+  width: 84px;
+  height: 84px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 8px;
+  background-color: #eee;
+`;
+
+const ImageThumb = styled.Image`
+  width: 100%;
+  height: 100%;
+`;
+
+const ImageOverlay = styled.View.attrs(() => ({
+  style: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+}))``;
+
+const OverlayText = styled.Text`
+  color: ${theme.COLORS.WHITE};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+`;
+
+const BadgeRow = styled.View`
+  flex-direction: row;
+  margin-top: 6px;
+  margin-bottom: 6px;
+`;
+
+const StatusBadge = styled.View`
+  background-color: ${theme.COLORS.GREY_10};
+  border-radius: 999px;
+  padding: 6px 10px;
+`;
+
+const StatusText = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.MEDIUM};
+`;
+
+const ListContainer = styled.View`
+  padding-vertical: 12px;
+`;
+
+const EmptyState = styled.View`
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+`;
+
+const EmptyTitle = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+  margin-top: 8px;
+`;
+
+const EmptySubtitle = styled.Text`
+  color: ${theme.COLORS.GREY_80};
+  text-align: center;
+`;
 

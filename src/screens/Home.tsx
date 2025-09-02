@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import theme from '@theme/index';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -27,7 +28,8 @@ const Home: React.FC = () => {
     }, []),
   );
   return (
-    <View style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND, padding: 24 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }}>
+      <View style={{ flex: 1, padding: 24 }}>
       <Text style={{ fontSize: theme.FONT_SIZE.XL, fontFamily: theme.FONT_FAMILY.BOLD, color: theme.COLORS.PRIMARY, marginBottom: 16 }}>
         Início do Profissional
       </Text>
@@ -49,7 +51,8 @@ const Home: React.FC = () => {
       <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 14, borderRadius: 8, alignItems: 'center' }}>
         <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Ir ao perfil</Text>
       </TouchableOpacity>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
