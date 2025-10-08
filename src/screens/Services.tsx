@@ -3,34 +3,63 @@ import styled from 'styled-components/native';
 import theme from '@theme/index';
 import { api } from '@config/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '@routes/stack.routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert } from 'react-native';
 
 type Nav = StackNavigationProp<RootStackParamList, 'ServiceNew'>;
 
 const Services: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const [services, setServices] = React.useState<Array<{ id: string; name: string; description: string; price: number | null; pricingType?: 'FIXED' | 'HOURLY' | 'BUDGET'; images?: string[] }>>([]);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get('/services/mine');
-        setServices(res.data);
-      } catch {}
-    })();
+  const loadServices = React.useCallback(async () => {
+    try {
+      const res = await api.get('/services/mine');
+      setServices(res.data);
+    } catch (error) {
+      console.error('Erro ao carregar serviços:', error);
+    }
   }, []);
 
-  function handleDelete(id: string) {
-    (async () => {
-      try {
-        await api.delete(`/services/${id}`);
-        const res = await api.get('/services/mine');
-        setServices(res.data);
-      } catch {}
-    })();
+  // Recarrega serviços quando a tela recebe o foco
+  useFocusEffect(
+    React.useCallback(() => {
+      loadServices();
+    }, [loadServices])
+  );
+
+  function handleDelete(id: string, serviceName: string) {
+    Alert.alert(
+      'Excluir serviço',
+      `Tem certeza que deseja excluir "${serviceName}"? Esta ação não pode ser desfeita.`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingId(id);
+            try {
+              await api.delete(`/services/${id}`);
+              Alert.alert('Sucesso', 'Serviço excluído com sucesso!');
+              await loadServices();
+            } catch (error: any) {
+              const message = error?.response?.data?.message || 'Erro ao excluir serviço';
+              Alert.alert('Erro', message);
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -87,9 +116,19 @@ const Services: React.FC = () => {
                   <SecondaryButton onPress={() => navigation.navigate('ServiceImagesUpload', { serviceId: item.id })}>
                     <ButtonTextSecondary>Adicionar fotos</ButtonTextSecondary>
                   </SecondaryButton>
-                  <SecondaryButton onPress={() => handleDelete(item.id)}>
-                    <ButtonTextSecondary>Excluir</ButtonTextSecondary>
-                  </SecondaryButton>
+                  <DeleteButton 
+                    disabled={deletingId === item.id}
+                    onPress={() => handleDelete(item.id, item.name)}
+                  >
+                    {deletingId === item.id ? (
+                      <ButtonTextSecondary>Excluindo...</ButtonTextSecondary>
+                    ) : (
+                      <>
+                        <Ionicons name="trash-outline" size={16} color={theme.COLORS.WARNING} />
+                        <ButtonTextDanger>Excluir</ButtonTextDanger>
+                      </>
+                    )}
+                  </DeleteButton>
                 </ButtonsRow>
               </Card>
             );
@@ -223,6 +262,12 @@ const SecondaryButton = styled(BaseButton)`
   background-color: ${theme.COLORS.GREY_20}90;
 `;
 
+const DeleteButton = styled(BaseButton)`
+  background-color: ${theme.COLORS.GREY_20}90;
+  flex-direction: row;
+  gap: 6px;
+`;
+
 const ButtonTextPrimary = styled.Text`
   color: ${theme.COLORS.WHITE};
   font-family: ${theme.FONT_FAMILY.BOLD};
@@ -230,6 +275,11 @@ const ButtonTextPrimary = styled.Text`
 
 const ButtonTextSecondary = styled.Text`
   color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.MEDIUM};
+`;
+
+const ButtonTextDanger = styled.Text`
+  color: ${theme.COLORS.WARNING};
   font-family: ${theme.FONT_FAMILY.MEDIUM};
 `;
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import theme from '@theme/index';
 import { api } from '@config/api';
@@ -45,34 +45,36 @@ const EditProfile: React.FC = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND, padding: 24 }}>
-      <Text style={{ fontSize: theme.FONT_SIZE.XL, fontFamily: theme.FONT_FAMILY.BOLD, color: theme.COLORS.PRIMARY, marginBottom: 16 }}>Editar Perfil</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }}>
+      <View style={{ flex: 1, padding: 24 }}>
+        <Text style={{ fontSize: theme.FONT_SIZE.XL, fontFamily: theme.FONT_FAMILY.BOLD, color: theme.COLORS.PRIMARY, marginBottom: 16 }}>Editar Perfil</Text>
 
-      <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Bio</Text>
-      <TextInput
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Conte um pouco sobre você..."
-        multiline
-        style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12, minHeight: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: theme.COLORS.GREY_20 }}
-      />
-      <TouchableOpacity onPress={saveBio} disabled={submitting} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 }}>
-        <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Salvar bio</Text>
-      </TouchableOpacity>
+        <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Bio</Text>
+        <TextInput
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Conte um pouco sobre você..."
+          multiline
+          style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12, minHeight: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: theme.COLORS.GREY_20 }}
+        />
+        <TouchableOpacity onPress={saveBio} disabled={submitting} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 }}>
+          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Salvar bio</Text>
+        </TouchableOpacity>
 
-      <View style={{ height: 24 }} />
+        <View style={{ height: 24 }} />
 
-      <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Foto de perfil</Text>
-      {!!avatarUri && (
-        <Image source={{ uri: avatarUri }} style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 8 }} />
-      )}
-      <TouchableOpacity onPress={pickImage} style={{ backgroundColor: theme.COLORS.PRIMARY, padding: 12, borderRadius: 8, alignItems: 'center' }}>
-        <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>{avatarUri ? 'Trocar foto' : 'Escolher foto'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={uploadAvatar} disabled={!avatarUri || submitting} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10, opacity: avatarUri ? 1 : 0.6 }}>
-        <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Enviar foto</Text>
-      </TouchableOpacity>
-    </View>
+        <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Foto de perfil</Text>
+        {!!avatarUri && (
+          <Image source={{ uri: avatarUri }} style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 8 }} />
+        )}
+        <TouchableOpacity onPress={pickImage} style={{ backgroundColor: theme.COLORS.PRIMARY, padding: 12, borderRadius: 8, alignItems: 'center' }}>
+          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>{avatarUri ? 'Trocar foto' : 'Escolher foto'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={uploadAvatar} disabled={!avatarUri || submitting} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10, opacity: avatarUri ? 1 : 0.6 }}>
+          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Enviar foto</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
