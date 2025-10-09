@@ -7,6 +7,7 @@ import Address from '@screens/Address';
 import ServiceNew from '@screens/ServiceNew';
 import EditProfile from '@screens/EditProfile';
 import ServiceImagesUpload from '@screens/ServiceImagesUpload';
+import { Chat } from '@screens/Chat';
 import { useAuth } from '@hooks/auth';
 import { TabRoutes } from './tab.routes';
 
@@ -19,6 +20,13 @@ export type RootStackParamList = {
   Address: undefined;
   EditProfile: undefined;
   ServiceImagesUpload: { serviceId: string };
+  Chat: {
+    clientId: string;
+    clientName: string;
+    clientImage: string;
+    serviceId: string;
+    serviceName: string;
+  };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -36,6 +44,7 @@ export const StackRoutes: React.FC = () => {
           <Stack.Screen name="Address" component={Address} />
           <Stack.Screen name="EditProfile" component={EditProfile} />
           <Stack.Screen name="ServiceImagesUpload" component={ServiceImagesUpload} />
+          <Stack.Screen name="Chat" component={Chat} />
         </>
       ) : (
         <>
