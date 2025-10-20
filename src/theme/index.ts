@@ -17,6 +17,7 @@ export default {
     WARNING: '#FF7D7D',
     ATTENTION: '#FFAA1B',
     SUCCESS: '#70CF4F',
+    ERROR: '#FF3B30',
 
     SHADOW: 'rgba(0, 0, 0, 0.67)',
     BACKGROUND: '#F4F4F4',

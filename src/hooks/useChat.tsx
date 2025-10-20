@@ -30,14 +30,15 @@ interface UseChatProps {
   clientId: string;
   serviceId: string;
   userId: string; // ID do profissional logado
+  chatId?: string; // ID do chat específico (opcional)
 }
 
-export const useChat = ({ clientId, serviceId, userId }: UseChatProps) => {
+export const useChat = ({ clientId, serviceId, userId, chatId: providedChatId }: UseChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatId, setChatId] = useState<string | null>(providedChatId || null);
   const [isLoadingChat, setIsLoadingChat] = useState(true);
   
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -105,6 +106,16 @@ export const useChat = ({ clientId, serviceId, userId }: UseChatProps) => {
   const initializeChat = async () => {
     try {
       setIsLoadingChat(true);
+      
+      // Se chatId foi fornecido, usar ele diretamente
+      if (providedChatId) {
+        console.log('💬 [PRO-CHAT] Usando chatId fornecido:', providedChatId);
+        setChatId(providedChatId);
+        await fetchMessages(providedChatId);
+        return;
+      }
+      
+      // Caso contrário, buscar/criar chat
       const chat = await createOrGetChat({
         clientId,
         professionalId: userId,

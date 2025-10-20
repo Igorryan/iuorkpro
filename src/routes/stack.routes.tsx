@@ -26,6 +26,7 @@ export type RootStackParamList = {
     clientImage: string;
     serviceId: string;
     serviceName: string;
+    chatId?: string;
   };
 };
 

@@ -22,6 +22,13 @@ export interface Chat {
     id: string;
     title: string;
   };
+  budget?: {
+    id: string;
+    status: 'PENDING' | 'QUOTED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+    price: string;
+    description: string | null;
+    expiresAt: string | null;
+  };
   messages?: Message[];
   _count?: {
     messages: number;

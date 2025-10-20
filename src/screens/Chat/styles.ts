@@ -10,7 +10,7 @@ export const Header = styled(View)`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: ${Platform.OS === 'android' ? '50px 16px 16px' : '60px 16px 16px'};
+  padding: 16px;
   background-color: ${({ theme }) => theme.COLORS.WHITE};
   border-bottom-width: 1px;
   border-bottom-color: ${({ theme }) => theme.COLORS.GREY_20};
@@ -167,7 +167,6 @@ export const InputContainer = styled(View)`
   flex-direction: row;
   align-items: flex-end;
   padding: 12px 16px;
-  padding-bottom: ${Platform.OS === 'ios' ? '32px' : '12px'};
   background-color: ${({ theme }) => theme.COLORS.WHITE};
   border-top-width: 1px;
   border-top-color: ${({ theme }) => theme.COLORS.GREY_20};
@@ -258,5 +257,13 @@ export const CancelRecordingText = styled(Text)`
   font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
   font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
   color: ${({ theme }) => theme.COLORS.WARNING};
+`;
+
+export const DisabledText = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  text-align: center;
+  padding: 12px 16px;
 `;
 

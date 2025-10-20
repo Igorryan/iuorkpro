@@ -58,8 +58,100 @@ const Orders: React.FC = () => {
         });
       });
 
+      // Ouvir novas mensagens para atualizar a lista de chats
+      socket.on(SocketEvents.NEW_MESSAGE, (newMessage: any) => {
+        console.log('🔔 Nova mensagem recebida na lista!', newMessage);
+        setChats((prev) => {
+          const chatIndex = prev.findIndex(c => c.id === newMessage.chatId);
+          
+          if (chatIndex === -1) {
+            // Chat não encontrado, recarregar lista
+            loadChats();
+            return prev;
+          }
+
+          const updatedChats = [...prev];
+          const chat = { ...updatedChats[chatIndex] };
+          
+          // Atualizar última mensagem
+          chat.lastMessageAt = newMessage.createdAt;
+          
+          // Atualizar array de mensagens (apenas última mensagem para preview)
+          chat.messages = [newMessage];
+          
+          // Atualizar contador de não lidas (se a mensagem não é minha)
+          if (newMessage.senderId !== user.id && chat._count) {
+            chat._count.messages = (chat._count.messages || 0) + 1;
+          }
+          
+          // Remover chat da posição atual
+          updatedChats.splice(chatIndex, 1);
+          
+          // Adicionar no topo da lista
+          return [chat, ...updatedChats];
+        });
+      });
+
+      // Ouvir evento de mensagens lidas
+      socket.on(SocketEvents.MESSAGE_READ, (data: { chatId: string; userId: string }) => {
+        console.log('📖 Mensagens lidas no chat:', data.chatId, 'por usuário:', data.userId);
+        
+        // Se eu fui quem leu, zerar o contador de não lidas
+        if (data.userId === user.id) {
+          setChats((prev) => {
+            const chatIndex = prev.findIndex(c => c.id === data.chatId);
+            
+            if (chatIndex === -1) {
+              return prev;
+            }
+
+            const updatedChats = [...prev];
+            const chat = { ...updatedChats[chatIndex] };
+            
+            // Zerar contador de não lidas
+            if (chat._count) {
+              chat._count.messages = 0;
+            }
+            
+            updatedChats[chatIndex] = chat;
+            console.log('   - Contador de não lidas zerado');
+            return updatedChats;
+          });
+        }
+      });
+
+      // Ouvir atualizações de chat list (orçamento cancelado/atualizado)
+      socket.on('chat-list-update', (data: { chatId: string; budget: any }) => {
+        console.log('🔄 Atualização de chat recebida:', data);
+        
+        setChats((prev) => {
+          const chatIndex = prev.findIndex(c => c.id === data.chatId);
+          
+          if (chatIndex === -1) {
+            console.log('   - Chat não encontrado, recarregando lista');
+            loadChats();
+            return prev;
+          }
+
+          const updatedChats = [...prev];
+          const chat = { ...updatedChats[chatIndex] };
+          
+          // Atualizar budget se fornecido
+          if (data.budget) {
+            chat.budget = data.budget;
+            console.log(`   - Budget atualizado: status = ${data.budget.status}`);
+          }
+          
+          updatedChats[chatIndex] = chat;
+          return updatedChats;
+        });
+      });
+
       return () => {
         socket.off(SocketEvents.NEW_CHAT);
+        socket.off(SocketEvents.NEW_MESSAGE);
+        socket.off(SocketEvents.MESSAGE_READ);
+        socket.off('chat-list-update');
       };
     }
   }, [loadChats, socket, user?.id]);
@@ -70,12 +162,14 @@ const Orders: React.FC = () => {
   };
 
   const handleChatPress = (chat: Chat) => {
+    // Permite acessar o chat independentemente do status do orçamento
     navigation.navigate('Chat', {
       clientId: chat.clientId,
       clientName: chat.client?.name || 'Cliente',
       clientImage: chat.client?.avatarUrl || '',
       serviceId: chat.serviceId || '',
       serviceName: chat.service?.title || 'Serviço',
+      chatId: chat.id, // ✅ Passa o ID do chat específico
     });
   };
 
@@ -100,6 +194,28 @@ const Orders: React.FC = () => {
     if (lastMessage.messageType === 'IMAGE') return '📷 Imagem';
     if (lastMessage.messageType === 'AUDIO') return '🎤 Áudio';
     return lastMessage.content || '';
+  };
+
+  const getBudgetStatusLabel = (status: string) => {
+    const labels: { [key: string]: string } = {
+      PENDING: 'Aguardando',
+      QUOTED: 'Aceito', // Mantido para compatibilidade
+      ACCEPTED: 'Aceito',
+      REJECTED: 'Cancelado',
+      EXPIRED: 'Expirado',
+    };
+    return labels[status] || status;
+  };
+
+  const getBudgetStatusColor = (status: string) => {
+    const colors: { [key: string]: string } = {
+      PENDING: theme.COLORS.WARNING || '#FFA500',
+      QUOTED: theme.COLORS.SECONDARY,
+      ACCEPTED: theme.COLORS.SUCCESS || '#70CF4F',
+      REJECTED: theme.COLORS.ERROR || '#FF3B30',
+      EXPIRED: theme.COLORS.GREY_40,
+    };
+    return colors[status] || theme.COLORS.GREY_40;
   };
 
   if (isLoading) {
@@ -149,7 +265,10 @@ const Orders: React.FC = () => {
               const unreadCount = chat._count?.messages || 0;
               
               return (
-                <ChatCard key={chat.id} onPress={() => handleChatPress(chat)}>
+                <ChatCard 
+                  key={chat.id} 
+                  onPress={() => handleChatPress(chat)}
+                >
                   {chat.client?.avatarUrl ? (
                     <Avatar source={{ uri: chat.client.avatarUrl }} />
                   ) : (
@@ -172,6 +291,21 @@ const Orders: React.FC = () => {
                         {chat.service?.title || 'Sem serviço'}
                       </ServiceName>
                     </ServiceRow>
+                    
+                    {chat.budget && (
+                      <BudgetStatusRow>
+                        <BudgetStatusBadge statusColor={getBudgetStatusColor(chat.budget.status)}>
+                          <BudgetStatusText>
+                            {getBudgetStatusLabel(chat.budget.status)}
+                          </BudgetStatusText>
+                        </BudgetStatusBadge>
+                        {chat.budget.price !== '0' && (
+                          <BudgetPriceText>
+                            R$ {parseFloat(chat.budget.price).toFixed(2)}
+                          </BudgetPriceText>
+                        )}
+                      </BudgetStatusRow>
+                    )}
                     
                     <MessageRow>
                       <LastMessage numberOfLines={1} hasUnread={unreadCount > 0}>
@@ -384,4 +518,30 @@ const UnreadText = styled.Text`
 
 const ChevronIcon = styled.View`
   margin-left: 8px;
+`;
+
+const BudgetStatusRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+`;
+
+const BudgetStatusBadge = styled.View<{ statusColor: string }>`
+  background-color: ${props => props.statusColor}20;
+  border-radius: 6px;
+  padding: 4px 8px;
+  border: 1px solid ${props => props.statusColor};
+`;
+
+const BudgetStatusText = styled.Text`
+  color: ${theme.COLORS.PRIMARY};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+  font-size: 11px;
+`;
+
+const BudgetPriceText = styled.Text`
+  color: ${theme.COLORS.SECONDARY};
+  font-family: ${theme.FONT_FAMILY.BOLD};
+  font-size: 13px;
 `;
