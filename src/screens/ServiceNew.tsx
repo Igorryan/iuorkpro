@@ -1,12 +1,18 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, SafeAreaView, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import theme from '@theme/index';
 import { api } from '@config/api';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@routes/stack.routes';
+
+type ServiceNewRouteProp = RouteProp<RootStackParamList, 'ServiceNew'>;
 
 const ServiceNew: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute<ServiceNewRouteProp>();
+  const serviceId = route.params?.serviceId;
+  const isEditing = !!serviceId;
 
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -14,6 +20,33 @@ const ServiceNew: React.FC = () => {
   const [price, setPrice] = React.useState('');
   const [pickedUris, setPickedUris] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  // Carrega os dados do serviço se estiver editando
+  React.useEffect(() => {
+    if (isEditing) {
+      loadServiceData();
+    }
+  }, [serviceId]);
+
+  const loadServiceData = async () => {
+    setIsLoading(true);
+    try {
+      const { data } = await api.get(`/services/${serviceId}`);
+      setTitle(data.name || '');
+      setDescription(data.description || '');
+      setPricingType(data.pricingType || 'BUDGET');
+      if (data.price !== null && data.price !== undefined) {
+        setPrice(String(data.price));
+      }
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Erro ao carregar serviço';
+      Alert.alert('Erro', message);
+      navigation.goBack();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = React.useCallback(async () => {
     if (!title.trim() || !description.trim()) {
@@ -37,40 +70,66 @@ const ServiceNew: React.FC = () => {
           return;
         }
         payload.price = numericPrice;
+      } else {
+        payload.price = null;
       }
       
-      // 1) Cria o serviço
-      const { data: created } = await api.post('/services', payload);
-
-      // 2) Se houver imagens selecionadas, DEVE enviar todas com sucesso
-      if (pickedUris.length > 0) {
-        try {
-          const form = new FormData();
-          pickedUris.forEach((uri, idx) => {
-            const name = `service-${created.id}-${Date.now()}-${idx}.jpg`;
-            form.append('files', { uri, name, type: 'image/jpeg' } as any);
-          });
-          await api.post(`/services/${created.id}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
-        } catch (imageError: any) {
-          // Se falhar o upload das imagens, deleta o serviço criado
-          await api.delete(`/services/${created.id}`);
-          const imageErrorMessage = imageError?.response?.data?.message || 'Erro ao enviar as fotos';
-          Alert.alert('Erro', `${imageErrorMessage}. O serviço não foi cadastrado.`);
-          setIsSubmitting(false);
-          return;
+      if (isEditing) {
+        // Atualiza o serviço existente
+        await api.put(`/services/${serviceId}`, payload);
+        
+        // Se houver imagens novas selecionadas, envia-as
+        if (pickedUris.length > 0) {
+          try {
+            const form = new FormData();
+            pickedUris.forEach((uri, idx) => {
+              const name = `service-${serviceId}-${Date.now()}-${idx}.jpg`;
+              form.append('files', { uri, name, type: 'image/jpeg' } as any);
+            });
+            await api.post(`/services/${serviceId}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+          } catch (imageError: any) {
+            const imageErrorMessage = imageError?.response?.data?.message || 'Erro ao enviar as fotos';
+            Alert.alert('Aviso', `Serviço atualizado, mas ${imageErrorMessage.toLowerCase()}`);
+          }
         }
+        
+        Alert.alert('Sucesso', 'Serviço atualizado com sucesso!', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        // Cria um novo serviço
+        const { data: created } = await api.post('/services', payload);
+
+        // Se houver imagens selecionadas, DEVE enviar todas com sucesso
+        if (pickedUris.length > 0) {
+          try {
+            const form = new FormData();
+            pickedUris.forEach((uri, idx) => {
+              const name = `service-${created.id}-${Date.now()}-${idx}.jpg`;
+              form.append('files', { uri, name, type: 'image/jpeg' } as any);
+            });
+            await api.post(`/services/${created.id}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+          } catch (imageError: any) {
+            // Se falhar o upload das imagens, deleta o serviço criado
+            await api.delete(`/services/${created.id}`);
+            const imageErrorMessage = imageError?.response?.data?.message || 'Erro ao enviar as fotos';
+            Alert.alert('Erro', `${imageErrorMessage}. O serviço não foi cadastrado.`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
+        Alert.alert('Sucesso', 'Serviço cadastrado com sucesso!', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
       }
-      
-      Alert.alert('Sucesso', 'Serviço cadastrado com sucesso!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
     } catch (e: any) {
-      const message = e?.response?.data?.message || 'Erro ao cadastrar serviço';
+      const message = e?.response?.data?.message || `Erro ao ${isEditing ? 'atualizar' : 'cadastrar'} serviço`;
       Alert.alert('Erro', message);
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, description, pricingType, price, pickedUris, navigation]);
+  }, [title, description, pricingType, price, pickedUris, navigation, isEditing, serviceId]);
 
   async function pickImages() {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.7 });
@@ -79,11 +138,20 @@ const ServiceNew: React.FC = () => {
     setPickedUris((prev) => [...prev, ...newUris]);
   }
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={theme.COLORS.SECONDARY} />
+        <Text style={{ marginTop: 16, color: theme.COLORS.PRIMARY }}>Carregando...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24 }}>
         <Text style={{ fontSize: theme.FONT_SIZE.XL, fontFamily: theme.FONT_FAMILY.BOLD, color: theme.COLORS.PRIMARY, marginBottom: 16 }}>
-          Novo Serviço
+          {isEditing ? 'Editar Serviço' : 'Novo Serviço'}
         </Text>
 
         <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Título</Text>
@@ -140,17 +208,29 @@ const ServiceNew: React.FC = () => {
           </>
         )}
 
-        <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Fotos do serviço (opcional)</Text>
-        <TouchableOpacity onPress={pickImages} style={{ backgroundColor: theme.COLORS.PRIMARY, padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}>
-          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>
-            {pickedUris.length > 0 ? `Adicionar mais (${pickedUris.length} selecionada${pickedUris.length > 1 ? 's' : ''})` : 'Escolher fotos'}
-          </Text>
-        </TouchableOpacity>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {pickedUris.map((u) => (
-            <Image key={u} source={{ uri: u }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }} />
-          ))}
-        </View>
+        {!isEditing && (
+          <>
+            <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Fotos do serviço (opcional)</Text>
+            <TouchableOpacity onPress={pickImages} style={{ backgroundColor: theme.COLORS.PRIMARY, padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>
+                {pickedUris.length > 0 ? `Adicionar mais (${pickedUris.length} selecionada${pickedUris.length > 1 ? 's' : ''})` : 'Escolher fotos'}
+              </Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {pickedUris.map((u) => (
+                <Image key={u} source={{ uri: u }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }} />
+              ))}
+            </View>
+          </>
+        )}
+
+        {isEditing && (
+          <View style={{ marginBottom: 16, padding: 12, backgroundColor: theme.COLORS.GREY_20, borderRadius: 8 }}>
+            <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 4 }}>
+              Para adicionar ou gerenciar fotos, use o botão "Adicionar fotos" na lista de serviços.
+            </Text>
+          </View>
+        )}
 
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <TouchableOpacity
@@ -183,7 +263,7 @@ const ServiceNew: React.FC = () => {
             }}
           >
             <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>
-              {isSubmitting ? 'Enviando...' : 'Cadastrar'}
+              {isSubmitting ? 'Enviando...' : isEditing ? 'Atualizar' : 'Cadastrar'}
             </Text>
           </TouchableOpacity>
         </View>

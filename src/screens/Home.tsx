@@ -1,19 +1,30 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import styled from 'styled-components/native';
+import { Ionicons } from '@expo/vector-icons';
 import theme from '@theme/index';
 import { useNavigation } from '@react-navigation/native';
-import type { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '@routes/stack.routes';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { RootTabParamList } from '@routes/tab.routes';
 import { useFocusEffect } from '@react-navigation/native';
 import { getUserAddress } from '@functions/getUserAddress';
+import { getUserChats } from '@api/callbacks/chat';
+import { useAuth } from '@hooks/auth';
+import { api } from '@config/api';
 import type { IAddress } from '../types/address';
 
-type Nav = StackNavigationProp<RootStackParamList, 'Profile'>;
+type Nav = BottomTabNavigationProp<RootTabParamList>;
 
 const Home: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const { user } = useAuth();
   const [address, setAddress] = React.useState<IAddress | undefined>(undefined);
+  const [stats, setStats] = React.useState({
+    totalChats: 0,
+    totalServices: 0,
+    pendingBudgets: 0,
+  });
 
   useFocusEffect(
     React.useCallback(() => {
@@ -21,41 +32,303 @@ const Home: React.FC = () => {
       (async () => {
         const a = await getUserAddress();
         if (mounted) setAddress(a);
+        
+        // Carregar estatísticas
+        if (user?.id) {
+          try {
+            const [chats, services] = await Promise.all([
+              getUserChats(user.id, 'PRO'),
+              api.get('/services/mine').catch(() => ({ data: [] })),
+            ]);
+            
+            const pendingBudgets = chats.filter(c => c.budget?.status === 'PENDING').length;
+            
+            if (mounted) {
+              setStats({
+                totalChats: chats.length,
+                totalServices: services.data.length,
+                pendingBudgets,
+              });
+            }
+          } catch (error) {
+            console.error('Erro ao carregar estatísticas:', error);
+          }
+        }
       })();
       return () => {
         mounted = false;
       };
-    }, []),
+    }, [user?.id]),
   );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }}>
-      <View style={{ flex: 1, padding: 24 }}>
-      <Text style={{ fontSize: theme.FONT_SIZE.XL, fontFamily: theme.FONT_FAMILY.BOLD, color: theme.COLORS.PRIMARY, marginBottom: 16 }}>
-        Início do Profissional
-      </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }} edges={['top']}>
+      <Container>
+        <Header>
+          <Greeting>Olá, {user?.name?.split(' ')[0] || 'Profissional'}!</Greeting>
+          <Subtitle>Gerencie seus serviços e pedidos</Subtitle>
+        </Header>
 
-      <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: theme.COLORS.GREY_20, marginBottom: 16 }}>
-        <Text style={{ color: theme.COLORS.PRIMARY, fontFamily: theme.FONT_FAMILY.BOLD }}>
-          {address?.street ? `${address.street}${address.number ? `, ${address.number}` : ''}` : 'Endereço não definido'}
-        </Text>
-        <Text style={{ color: theme.COLORS.PRIMARY, opacity: 0.8 }}>
-          {address?.city ? `${address.city} - ${address.state}` : 'Defina seu endereço para encontrar clientes próximos.'}
-        </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Address')} style={{ alignSelf: 'flex-start', backgroundColor: theme.COLORS.SECONDARY, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginTop: 10 }}>
-          <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>
-            {address ? 'Alterar endereço' : 'Definir endereço'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <StatsContainer>
+          <StatCard onPress={() => navigation.navigate('OrdersTab')}>
+            <StatIconContainer style={{ backgroundColor: theme.COLORS.SECONDARY + '20' }}>
+              <Ionicons name="chatbubbles" size={24} color={theme.COLORS.SECONDARY} />
+            </StatIconContainer>
+            <StatContent>
+              <StatValue>{stats.totalChats}</StatValue>
+              <StatLabel>Conversas</StatLabel>
+            </StatContent>
+          </StatCard>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{ backgroundColor: theme.COLORS.SECONDARY, padding: 14, borderRadius: 8, alignItems: 'center' }}>
-        <Text style={{ color: theme.COLORS.WHITE, fontFamily: theme.FONT_FAMILY.BOLD }}>Ir ao perfil</Text>
-      </TouchableOpacity>
-      </View>
+          <StatCard onPress={() => navigation.navigate('ServicesTab')}>
+            <StatIconContainer style={{ backgroundColor: theme.COLORS.SUCCESS + '20' }}>
+              <Ionicons name="construct" size={24} color={theme.COLORS.SUCCESS} />
+            </StatIconContainer>
+            <StatContent>
+              <StatValue>{stats.totalServices}</StatValue>
+              <StatLabel>Serviços</StatLabel>
+            </StatContent>
+          </StatCard>
+
+          {stats.pendingBudgets > 0 && (
+            <StatCard onPress={() => navigation.navigate('OrdersTab')}>
+              <StatIconContainer style={{ backgroundColor: theme.COLORS.WARNING + '20' }}>
+                <Ionicons name="time" size={24} color={theme.COLORS.WARNING} />
+              </StatIconContainer>
+              <StatContent>
+                <StatValue>{stats.pendingBudgets}</StatValue>
+                <StatLabel>Pendentes</StatLabel>
+              </StatContent>
+            </StatCard>
+          )}
+        </StatsContainer>
+
+        <AddressCard>
+          <AddressHeader>
+            <AddressIconContainer>
+              <Ionicons name="location" size={20} color={theme.COLORS.SECONDARY} />
+            </AddressIconContainer>
+            <AddressTitle>Endereço de Atendimento</AddressTitle>
+          </AddressHeader>
+          <AddressContent>
+            <AddressText>
+              {address?.street ? `${address.street}${address.number ? `, ${address.number}` : ''}` : 'Endereço não definido'}
+            </AddressText>
+            <AddressSubtext>
+              {address?.city ? `${address.city} - ${address.state}` : 'Defina seu endereço para encontrar clientes próximos.'}
+            </AddressSubtext>
+            <AddressButton onPress={() => navigation.navigate('Address')}>
+              <AddressButtonText>
+                {address ? 'Alterar endereço' : 'Definir endereço'}
+              </AddressButtonText>
+            </AddressButton>
+          </AddressContent>
+        </AddressCard>
+
+        <QuickActions>
+          <QuickActionTitle>Ações Rápidas</QuickActionTitle>
+          <QuickActionButtons>
+            <QuickActionButton onPress={() => navigation.navigate('ServiceNew', {})}>
+              <QuickActionIconContainer style={{ backgroundColor: theme.COLORS.SECONDARY + '20' }}>
+                <Ionicons name="add-circle" size={24} color={theme.COLORS.SECONDARY} />
+              </QuickActionIconContainer>
+              <QuickActionText>Novo Serviço</QuickActionText>
+            </QuickActionButton>
+
+            <QuickActionButton onPress={() => navigation.navigate('ProfileTab')}>
+              <QuickActionIconContainer style={{ backgroundColor: theme.COLORS.PRIMARY + '20' }}>
+                <Ionicons name="person-circle" size={24} color={theme.COLORS.PRIMARY} />
+              </QuickActionIconContainer>
+              <QuickActionText>Meu Perfil</QuickActionText>
+            </QuickActionButton>
+          </QuickActionButtons>
+        </QuickActions>
+      </Container>
     </SafeAreaView>
   );
 };
 
 export default Home;
 
+const Container = styled.ScrollView.attrs({
+  contentContainerStyle: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 100,
+  },
+})`
+  flex: 1;
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
+`;
 
+const Header = styled.View`
+  margin-bottom: 24px;
+`;
+
+const Greeting = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.XXL}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+  margin-bottom: 4px;
+`;
+
+const Subtitle = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.MD}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+`;
+
+const StatsContainer = styled.View`
+  flex-direction: row;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+`;
+
+const StatCard = styled.TouchableOpacity`
+  flex: 1;
+  min-width: 100px;
+  background-color: ${({ theme }) => theme.COLORS.WHITE};
+  border-radius: 16px;
+  padding: 16px;
+  align-items: center;
+  shadow-color: ${({ theme }) => theme.COLORS.SHADOW};
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.08;
+  shadow-radius: 8px;
+  elevation: 3;
+`;
+
+const StatIconContainer = styled.View`
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+`;
+
+const StatContent = styled.View`
+  align-items: center;
+`;
+
+const StatValue = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.XL}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+  margin-bottom: 4px;
+`;
+
+const StatLabel = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+`;
+
+const AddressCard = styled.View`
+  background-color: ${({ theme }) => theme.COLORS.WHITE};
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  shadow-color: ${({ theme }) => theme.COLORS.SHADOW};
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.08;
+  shadow-radius: 8px;
+  elevation: 3;
+`;
+
+const AddressHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const AddressIconContainer = styled.View`
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: ${({ theme }) => theme.COLORS.SECONDARY}20;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+`;
+
+const AddressTitle = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.LG}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+`;
+
+const AddressContent = styled.View``;
+
+const AddressText = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
+  font-size: ${({ theme }) => theme.FONT_SIZE.MD}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+  margin-bottom: 4px;
+`;
+
+const AddressSubtext = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  margin-bottom: 16px;
+`;
+
+const AddressButton = styled.TouchableOpacity`
+  align-self: flex-start;
+  background-color: ${({ theme }) => theme.COLORS.SECONDARY};
+  padding: 12px 20px;
+  border-radius: 12px;
+`;
+
+const AddressButtonText = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.WHITE};
+`;
+
+const QuickActions = styled.View`
+  margin-bottom: 24px;
+`;
+
+const QuickActionTitle = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.LG}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+  margin-bottom: 12px;
+`;
+
+const QuickActionButtons = styled.View`
+  flex-direction: row;
+  gap: 12px;
+`;
+
+const QuickActionButton = styled.TouchableOpacity`
+  flex: 1;
+  background-color: ${({ theme }) => theme.COLORS.WHITE};
+  border-radius: 16px;
+  padding: 20px;
+  align-items: center;
+  shadow-color: ${({ theme }) => theme.COLORS.SHADOW};
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.08;
+  shadow-radius: 8px;
+  elevation: 3;
+`;
+
+const QuickActionIconContainer = styled.View`
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+`;
+
+const QuickActionText = styled.Text`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+  text-align: center;
+`;

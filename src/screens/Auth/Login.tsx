@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     try {
       await login(email.trim(), password);
     } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Falha no login';
+      const msg = e?.message || e?.response?.data?.message || 'Falha no login';
       setError(msg);
     } finally {
       setLoading(false);

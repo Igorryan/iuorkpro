@@ -27,7 +27,7 @@ const SignUp: React.FC = () => {
     try {
       await signUp({ fullName: fullName.trim(), email: email.trim(), password });
     } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Falha ao criar conta';
+      const msg = e?.message || e?.response?.data?.message || 'Falha ao criar conta';
       setError(msg);
     } finally {
       setLoading(false);

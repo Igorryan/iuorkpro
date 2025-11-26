@@ -267,3 +267,225 @@ export const DisabledText = styled(Text)`
   padding: 12px 16px;
 `;
 
+// Mensagem de início do orçamento
+export const BudgetInfoMessage = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+`;
+
+export const BudgetInfoIcon = styled(Text)`
+  font-size: 20px;
+  margin-right: 8px;
+`;
+
+export const BudgetInfoText = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_40};
+  text-align: center;
+`;
+
+// Mensagem de orçamento finalizado
+export const BudgetClosedContainer = styled(View)`
+  background-color: ${({ theme }) => theme.COLORS.WHITE};
+  border-top-width: 1px;
+  border-top-color: ${({ theme }) => theme.COLORS.GREY_20};
+  padding: 20px 24px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+export const BudgetClosedMessage = styled(View)`
+  background-color: ${({ theme }) => theme.COLORS.WHITE};
+  border-radius: 16px;
+  elevation: 3;
+  flex: 1;
+  `;
+
+export const BudgetClosedIcon = styled(Text)`
+  font-size: 16px;
+  margin-right: 6px;
+`;
+
+export const BudgetTitleContainer = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+`;
+
+export const BudgetClosedTitle = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  margin-bottom: 4px;
+  margin-top: 4px;
+  text-align: center;
+`;
+
+export const BudgetClosedText = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  margin-bottom: 24px;
+`;
+
+export const BudgetClosedPrice = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-weight: 500;
+  font-size: 22px;
+  color: ${({ theme }) => theme.COLORS.GREY};
+`;
+export const BudgetServiceNameButton = styled(TouchableOpacity)`
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const BudgetContractContainer = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+`;
+
+export const BudgetPriceContainer = styled(View)`
+`;
+
+export const BudgetContractButton = styled(TouchableOpacity)`
+  flex: 1;
+  padding: 16px;
+  background-color: ${({ theme }) => theme.COLORS.BLACK};
+  border-radius: 24px;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const BudgetContractButtonText = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
+  font-size: ${({ theme }) => theme.FONT_SIZE.MD}px;
+  color: ${({ theme }) => theme.COLORS.WHITE};
+`;
+
+export const BudgetSentCard = styled(View)`
+  background-color: ${({ theme }) => theme.COLORS.WHITE};
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 75%;
+  margin: 0;
+  shadow-color: ${({ theme }) => theme.COLORS.SHADOW};
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.1;
+  shadow-radius: 4px;
+  elevation: 3;
+  border: 2px solid ${({ theme }) => theme.COLORS.SECONDARY};
+`;
+
+export const BudgetSentHeader = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 12px;
+`;
+
+export const BudgetSentIconContainer = styled(View)`
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: ${({ theme }) => theme.COLORS.SECONDARY}20;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+`;
+
+export const BudgetSentHeaderContent = styled(View)`
+  flex: 1;
+`;
+
+export const BudgetSentTitle = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.MD}px;
+  color: ${({ theme }) => theme.COLORS.PRIMARY};
+`;
+
+export const BudgetSentSubtitle = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  margin-top: 2px;
+`;
+
+export const BudgetSentServiceInfo = styled(View)`
+  margin-bottom: 12px;
+`;
+
+export const BudgetSentServiceLabel = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  margin-bottom: 4px;
+`;
+
+export const BudgetSentServiceName = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
+  font-size: ${({ theme }) => theme.FONT_SIZE.MD}px;
+  color: ${({ theme }) => theme.COLORS.GREY};
+`;
+
+export const BudgetSentPriceContainer = styled(View)`
+  background-color: ${({ theme }) => theme.COLORS.SECONDARY}10;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+`;
+
+export const BudgetSentPriceLabel = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  margin-bottom: 4px;
+`;
+
+export const BudgetSentPrice = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+  font-size: ${({ theme }) => theme.FONT_SIZE.XXL}px;
+  color: ${({ theme }) => theme.COLORS.SECONDARY};
+`;
+
+export const BudgetSentDescriptionContainer = styled(View)`
+  margin-bottom: 12px;
+`;
+
+export const BudgetSentDescriptionLabel = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY};
+  margin-bottom: 4px;
+`;
+
+export const BudgetSentDescription = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+  line-height: 20px;
+`;
+
+export const BudgetSentExpiryInfo = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const BudgetSentExpiryText = styled(Text)`
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  font-size: ${({ theme }) => theme.FONT_SIZE.SSM}px;
+  color: ${({ theme }) => theme.COLORS.GREY_60};
+`;
+

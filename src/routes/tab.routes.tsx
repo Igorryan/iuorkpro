@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Home from '@screens/Home';
 import Profile from '@screens/Profile';
 import Orders from '@screens/Orders';
@@ -17,6 +18,9 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export const TabRoutes: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 6);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -26,22 +30,13 @@ export const TabRoutes: React.FC = () => {
         tabBarStyle: {
           backgroundColor: theme.COLORS.WHITE,
           borderTopColor: 'transparent',
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: 12,
-          borderRadius: 24,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
-          shadowColor: theme.COLORS.SHADOW,
-          shadowOpacity: 0.06,
-          shadowOffset: { width: 0, height: 6 },
-          shadowRadius: 16,
-          elevation: 4,
+          height: 64 + insets.bottom,
+          paddingBottom: bottomPadding,
+          paddingTop: 0,
+          marginTop: 0,
         },
         tabBarLabelStyle: { fontSize: 12, marginBottom: 4 },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color }) => {
           let iconName: string = 'home-outline';
           if (route.name === 'OrdersTab') iconName = 'receipt-outline';
           if (route.name === 'ServicesTab') iconName = 'construct-outline';

@@ -28,8 +28,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           AsyncStorage.getItem('@user'),
         ]);
         if (token && userJson) {
+          const parsedUser = JSON.parse(userJson);
+          // Verifica se o usuário salvo tem role PRO antes de restaurar a sessão
+          if (parsedUser.role !== 'PRO') {
+            // Limpa dados inválidos do AsyncStorage
+            await AsyncStorage.multiRemove(['@token', '@user']);
+            delete api.defaults.headers.common.Authorization;
+            return;
+          }
           api.defaults.headers.common.Authorization = `Bearer ${token}`;
-          setUser(JSON.parse(userJson));
+          setUser(parsedUser);
           setIsAuthenticated(true);
         }
       } finally {
@@ -41,6 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
     const { token, user: returnedUser } = res.data as { token: string; user: User };
+    
+    // Verifica se o usuário tem role PRO antes de permitir login no pro-app
+    if (returnedUser.role !== 'PRO') {
+      throw new Error('Esta aplicação é apenas para profissionais. Por favor, use a aplicação de clientes.');
+    }
+    
     await Promise.all([
       AsyncStorage.setItem('@token', token),
       AsyncStorage.setItem('@user', JSON.stringify(returnedUser)),

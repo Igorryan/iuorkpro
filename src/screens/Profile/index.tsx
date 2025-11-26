@@ -115,9 +115,7 @@ const Profile: React.FC = () => {
     setIsSaving(true);
     try {
       // Salva a bio se tiver sido alterada
-      if (bio.trim() !== (user?.bio || '')) {
-        await api.put('/professionals/me/profile', { bio });
-      }
+      await api.put('/professionals/me/profile', { bio });
 
       // Envia a foto de perfil se tiver sido selecionada
       if (avatarUri) {
@@ -252,7 +250,7 @@ const Profile: React.FC = () => {
           <S.SectionBody>
             <S.BioInput
               value={bio}
-              onChangeText={(text) => {
+              onChangeText={(text: string) => {
                 setBio(text);
                 setIsEditing(true);
               }}
