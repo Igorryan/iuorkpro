@@ -32,22 +32,22 @@ export const TabRoutes: React.FC = () => {
           borderTopColor: 'transparent',
           height: 64 + insets.bottom,
           paddingBottom: bottomPadding,
-          paddingTop: 0,
+          paddingTop: 10,
           marginTop: 0,
         },
         tabBarLabelStyle: { fontSize: 12, marginBottom: 4 },
         tabBarIcon: ({ color }) => {
           let iconName: string = 'home-outline';
-          if (route.name === 'OrdersTab') iconName = 'receipt-outline';
-          if (route.name === 'ServicesTab') iconName = 'construct-outline';
+          if (route.name === 'OrdersTab') iconName = 'chatbubbles-outline';
+          if (route.name === 'ServicesTab') iconName = 'briefcase-outline';
           if (route.name === 'ProfileTab') iconName = 'person-outline';
           return <Ionicons name={iconName as any} size={20} color={color} />;
         },
       })}
     >
       <Tab.Screen name="HomeTab" component={Home} options={{ title: 'Início' }} />
-      <Tab.Screen name="OrdersTab" component={Orders} options={{ title: 'Pedidos' }} />
       <Tab.Screen name="ServicesTab" component={Services} options={{ title: 'Serviços' }} />
+      <Tab.Screen name="OrdersTab" component={Orders} options={{ title: 'Chat' }} />
       <Tab.Screen name="ProfileTab" component={Profile} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );

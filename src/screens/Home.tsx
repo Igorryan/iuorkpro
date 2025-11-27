@@ -7,59 +7,50 @@ import theme from '@theme/index';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '@routes/tab.routes';
-import { useFocusEffect } from '@react-navigation/native';
-import { getUserAddress } from '@functions/getUserAddress';
 import { getUserChats } from '@api/callbacks/chat';
 import { useAuth } from '@hooks/auth';
 import { api } from '@config/api';
-import type { IAddress } from '../types/address';
 
 type Nav = BottomTabNavigationProp<RootTabParamList>;
 
 const Home: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
-  const [address, setAddress] = React.useState<IAddress | undefined>(undefined);
   const [stats, setStats] = React.useState({
     totalChats: 0,
     totalServices: 0,
     pendingBudgets: 0,
   });
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let mounted = true;
-      (async () => {
-        const a = await getUserAddress();
-        if (mounted) setAddress(a);
-        
-        // Carregar estatísticas
-        if (user?.id) {
-          try {
-            const [chats, services] = await Promise.all([
-              getUserChats(user.id, 'PRO'),
-              api.get('/services/mine').catch(() => ({ data: [] })),
-            ]);
-            
-            const pendingBudgets = chats.filter(c => c.budget?.status === 'PENDING').length;
-            
-            if (mounted) {
-              setStats({
-                totalChats: chats.length,
-                totalServices: services.data.length,
-                pendingBudgets,
-              });
-            }
-          } catch (error) {
-            console.error('Erro ao carregar estatísticas:', error);
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      // Carregar estatísticas
+      if (user?.id) {
+        try {
+          const [chats, services] = await Promise.all([
+            getUserChats(user.id, 'PRO'),
+            api.get('/services/mine').catch(() => ({ data: [] })),
+          ]);
+          
+          const pendingBudgets = chats.filter(c => c.budget?.status === 'PENDING').length;
+          
+          if (mounted) {
+            setStats({
+              totalChats: chats.length,
+              totalServices: services.data.length,
+              pendingBudgets,
+            });
           }
+        } catch (error) {
+          console.error('Erro ao carregar estatísticas:', error);
         }
-      })();
-      return () => {
-        mounted = false;
-      };
-    }, [user?.id]),
-  );
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.COLORS.BACKGROUND }} edges={['top']}>
@@ -102,28 +93,6 @@ const Home: React.FC = () => {
             </StatCard>
           )}
         </StatsContainer>
-
-        <AddressCard>
-          <AddressHeader>
-            <AddressIconContainer>
-              <Ionicons name="location" size={20} color={theme.COLORS.SECONDARY} />
-            </AddressIconContainer>
-            <AddressTitle>Endereço de Atendimento</AddressTitle>
-          </AddressHeader>
-          <AddressContent>
-            <AddressText>
-              {address?.street ? `${address.street}${address.number ? `, ${address.number}` : ''}` : 'Endereço não definido'}
-            </AddressText>
-            <AddressSubtext>
-              {address?.city ? `${address.city} - ${address.state}` : 'Defina seu endereço para encontrar clientes próximos.'}
-            </AddressSubtext>
-            <AddressButton onPress={() => navigation.navigate('Address')}>
-              <AddressButtonText>
-                {address ? 'Alterar endereço' : 'Definir endereço'}
-              </AddressButtonText>
-            </AddressButton>
-          </AddressContent>
-        </AddressCard>
 
         <QuickActions>
           <QuickActionTitle>Ações Rápidas</QuickActionTitle>
@@ -223,69 +192,6 @@ const StatLabel = styled.Text`
   font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
   font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
   color: ${({ theme }) => theme.COLORS.GREY_60};
-`;
-
-const AddressCard = styled.View`
-  background-color: ${({ theme }) => theme.COLORS.WHITE};
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
-  shadow-color: ${({ theme }) => theme.COLORS.SHADOW};
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.08;
-  shadow-radius: 8px;
-  elevation: 3;
-`;
-
-const AddressHeader = styled.View`
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 16px;
-`;
-
-const AddressIconContainer = styled.View`
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
-  background-color: ${({ theme }) => theme.COLORS.SECONDARY}20;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-`;
-
-const AddressTitle = styled.Text`
-  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
-  font-size: ${({ theme }) => theme.FONT_SIZE.LG}px;
-  color: ${({ theme }) => theme.COLORS.PRIMARY};
-`;
-
-const AddressContent = styled.View``;
-
-const AddressText = styled.Text`
-  font-family: ${({ theme }) => theme.FONT_FAMILY.MEDIUM};
-  font-size: ${({ theme }) => theme.FONT_SIZE.MD}px;
-  color: ${({ theme }) => theme.COLORS.PRIMARY};
-  margin-bottom: 4px;
-`;
-
-const AddressSubtext = styled.Text`
-  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
-  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
-  color: ${({ theme }) => theme.COLORS.GREY_60};
-  margin-bottom: 16px;
-`;
-
-const AddressButton = styled.TouchableOpacity`
-  align-self: flex-start;
-  background-color: ${({ theme }) => theme.COLORS.SECONDARY};
-  padding: 12px 20px;
-  border-radius: 12px;
-`;
-
-const AddressButtonText = styled.Text`
-  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
-  font-size: ${({ theme }) => theme.FONT_SIZE.SM}px;
-  color: ${({ theme }) => theme.COLORS.WHITE};
 `;
 
 const QuickActions = styled.View`

@@ -1,18 +1,23 @@
 import React from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, ActivityIndicator } from 'react-native';
+import { Alert, ActivityIndicator, Modal, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import theme from '@theme/index';
 import { useAuth } from '@hooks/auth';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '@routes/stack.routes';
 import { api } from '@config/api';
 import { getUserAddress } from '@functions/getUserAddress';
 import type { IAddress } from '../types/address';
 import * as S from './styles';
 
+type Nav = StackNavigationProp<RootStackParamList, 'Profile'>;
+
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const [selectedAddress, setSelectedAddress] = React.useState<IAddress | undefined>(undefined);
   
@@ -25,6 +30,21 @@ const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
+  
+  // Estados para profissão
+  const [professions, setProfessions] = React.useState<Array<{ id: string; name: string; category: string | null }>>([]);
+  const [selectedProfessionId, setSelectedProfessionId] = React.useState<string | null>(null);
+  const [showProfessionPicker, setShowProfessionPicker] = React.useState(false);
+
+  // Carregar profissões disponíveis
+  const loadProfessions = React.useCallback(async () => {
+    try {
+      const { data } = await api.get('/professions');
+      setProfessions(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar profissões:', error);
+    }
+  }, []);
 
   // Carregar dados do perfil profissional
   const loadProfile = React.useCallback(async () => {
@@ -34,6 +54,7 @@ const Profile: React.FC = () => {
         setBio(data.bio || '');
         setUserAvatar(data.avatarUrl || null);
         setUserCover(data.coverUrl || null);
+        setSelectedProfessionId(data.professionId || null);
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
@@ -43,8 +64,9 @@ const Profile: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
+    loadProfessions();
     loadProfile();
-  }, [loadProfile]);
+  }, [loadProfessions, loadProfile]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -60,6 +82,14 @@ const Profile: React.FC = () => {
       };
     }, []),
   );
+
+  // Recarregar endereço quando voltar da tela de endereço
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      getUserAddress().then(setSelectedAddress).catch(() => {});
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   async function pickAvatar() {
     try {
@@ -114,8 +144,11 @@ const Profile: React.FC = () => {
   async function handleSave() {
     setIsSaving(true);
     try {
-      // Salva a bio se tiver sido alterada
-      await api.put('/professionals/me/profile', { bio });
+      // Salva a bio e profissão
+      await api.put('/professionals/me/profile', { 
+        bio,
+        professionId: selectedProfessionId,
+      });
 
       // Envia a foto de perfil se tiver sido selecionada
       if (avatarUri) {
@@ -177,6 +210,21 @@ const Profile: React.FC = () => {
         <S.SectionBody>
           <S.PrimaryText>{title}</S.PrimaryText>
           <S.SecondaryText>{subtitle}</S.SecondaryText>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Address')}
+            style={{
+              marginTop: 12,
+              alignSelf: 'flex-start',
+              backgroundColor: theme.COLORS.SECONDARY,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderRadius: 8,
+            }}
+          >
+            <S.ButtonTextPrimary style={{ fontSize: 14 }}>
+              {selectedAddress ? 'Alterar endereço' : 'Definir endereço'}
+            </S.ButtonTextPrimary>
+          </TouchableOpacity>
         </S.SectionBody>
       </S.SectionCard>
     );
@@ -241,6 +289,37 @@ const Profile: React.FC = () => {
           {user?.email && <S.UserEmail>{user.email}</S.UserEmail>}
         </S.ProfileSection>
 
+        {/* Profissão */}
+        <S.SectionCard>
+          <S.SectionHeader>
+            <S.Icon name="briefcase-outline" />
+            <S.SectionTitle>Profissão</S.SectionTitle>
+          </S.SectionHeader>
+          <S.SectionBody>
+            <TouchableOpacity
+              onPress={() => setShowProfessionPicker(true)}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: theme.COLORS.GREY_40,
+                borderRadius: 8,
+                backgroundColor: theme.COLORS.WHITE,
+              }}
+            >
+              <S.PrimaryText style={{ 
+                color: selectedProfessionId 
+                  ? theme.COLORS.GREY_80 
+                  : theme.COLORS.GREY_40,
+                fontSize: 16,
+              }}>
+                {selectedProfessionId 
+                  ? professions.find(p => p.id === selectedProfessionId)?.name || 'Selecione sua profissão'
+                  : 'Selecione sua profissão'}
+              </S.PrimaryText>
+            </TouchableOpacity>
+          </S.SectionBody>
+        </S.SectionCard>
+
         {/* Bio */}
         <S.SectionCard>
           <S.SectionHeader>
@@ -287,6 +366,54 @@ const Profile: React.FC = () => {
             </S.DangerButton>
           </S.ButtonsRow>
         </S.LastSectionCard>
+
+        {/* Modal de seleção de profissão */}
+        <Modal
+          visible={showProfessionPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowProfessionPicker(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <S.ModalContainer>
+              <S.ModalHeader>
+                <S.ModalTitle>Selecione sua profissão</S.ModalTitle>
+                <TouchableOpacity onPress={() => setShowProfessionPicker(false)}>
+                  <Ionicons name="close" size={24} color={theme.COLORS.GREY_80} />
+                </TouchableOpacity>
+              </S.ModalHeader>
+              <FlatList
+                data={professions}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedProfessionId(item.id);
+                      setIsEditing(true);
+                      setShowProfessionPicker(false);
+                    }}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.COLORS.GREY_20,
+                      backgroundColor: selectedProfessionId === item.id 
+                        ? theme.COLORS.SECONDARY + '20' 
+                        : theme.COLORS.WHITE,
+                    }}
+                  >
+                    <S.PrimaryText style={{ 
+                      fontSize: 16,
+                      color: theme.COLORS.GREY_80,
+                      fontWeight: selectedProfessionId === item.id ? '600' : '400',
+                    }}>
+                      {item.name}
+                    </S.PrimaryText>
+                  </TouchableOpacity>
+                )}
+              />
+            </S.ModalContainer>
+          </SafeAreaView>
+        </Modal>
       </S.Container>
     </SafeAreaView>
   );

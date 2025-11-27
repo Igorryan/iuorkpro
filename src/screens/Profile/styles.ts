@@ -258,3 +258,27 @@ export const ButtonTextDanger = styled(Text)`
 
 export const Icon = styled(Ionicons).attrs({ size: 22, color: theme.COLORS.PRIMARY })``;
 
+export const ModalContainer = styled(View)`
+  flex: 1;
+  background-color: ${theme.COLORS.WHITE};
+  margin-top: 20%;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding-top: 20px;
+`;
+
+export const ModalHeader = styled(View)`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px 16px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${theme.COLORS.GREY_20};
+`;
+
+export const ModalTitle = styled(Text)`
+  font-family: ${theme.FONT_FAMILY.BOLD};
+  font-size: ${theme.FONT_SIZE.XL}px;
+  color: ${theme.COLORS.PRIMARY};
+`;
+

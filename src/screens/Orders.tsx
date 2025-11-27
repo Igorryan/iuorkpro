@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '@routes/stack.routes';
 import { getUserChats } from '@api/callbacks/chat';
-import type { Chat } from '@api/callbacks/chat';
+import type { Chat, Message } from '@api/callbacks/chat';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, RefreshControl } from 'react-native';
 import { useSocket, SocketEvents } from '@hooks/useSocket';
@@ -143,8 +143,25 @@ const Orders: React.FC = () => {
           
           // Atualizar última mensagem se fornecida
           if (data.lastMessage) {
-            chat.lastMessageAt = data.lastMessageAt || data.lastMessage.createdAt;
-            chat.messages = [data.lastMessage];
+            // Converter lastMessageAt para string se necessário
+            const lastMessageAtStr = data.lastMessageAt 
+              ? (typeof data.lastMessageAt === 'string' ? data.lastMessageAt : data.lastMessageAt.toISOString())
+              : data.lastMessage.createdAt;
+            chat.lastMessageAt = lastMessageAtStr;
+            
+            // Criar objeto Message completo a partir dos dados recebidos
+            const message: Message = {
+              id: `temp-${Date.now()}`,
+              chatId: data.chatId,
+              senderId: data.lastMessage.senderId,
+              content: data.lastMessage.content || null,
+              messageType: 'TEXT',
+              mediaUrl: null,
+              audioDuration: null,
+              isRead: false,
+              createdAt: data.lastMessage.createdAt,
+            };
+            chat.messages = [message];
             
             // Atualizar contador de não lidas (se a mensagem não é minha)
             if (data.lastMessage.senderId !== user.id && chat._count) {
@@ -210,7 +227,7 @@ const Orders: React.FC = () => {
     } else if (diffInDays < 7) {
       return `${diffInDays}d`;
     } else {
-      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     }
   };
 
@@ -231,8 +248,8 @@ const Orders: React.FC = () => {
   const getBudgetStatusLabel = (status: string) => {
     const labels: { [key: string]: string } = {
       PENDING: 'Orçando',
-      QUOTED: 'Aceito', // Mantido para compatibilidade
-      ACCEPTED: 'Aceito',
+      QUOTED: 'Orçamento enviado',
+      ACCEPTED: 'Orçamento enviado',
       REJECTED: 'Cancelado',
       EXPIRED: 'Expirado',
     };
@@ -339,7 +356,7 @@ const Orders: React.FC = () => {
                             {getChatStatus(chat, unreadCount)!.label}
                           </StatusTagText>
                         </StatusTag>
-                      )}
+                        )}
                     </NameRow>
                     
                     <MessageRow>
