@@ -18,6 +18,8 @@ const ServiceNew: React.FC = () => {
   const [description, setDescription] = React.useState('');
   const [pricingType, setPricingType] = React.useState<'BUDGET' | 'FIXED' | 'HOURLY'>('BUDGET');
   const [price, setPrice] = React.useState('');
+  const [isOnline, setIsOnline] = React.useState(false);
+  const [isPresential, setIsPresential] = React.useState(false);
   const [pickedUris, setPickedUris] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -36,6 +38,8 @@ const ServiceNew: React.FC = () => {
       setTitle(data.name || '');
       setDescription(data.description || '');
       setPricingType(data.pricingType || 'BUDGET');
+      setIsOnline(data.isOnline || false);
+      setIsPresential(data.isPresential || false);
       if (data.price !== null && data.price !== undefined) {
         setPrice(String(data.price));
       }
@@ -60,6 +64,8 @@ const ServiceNew: React.FC = () => {
         title: title.trim(),
         description: description.trim(),
         pricingType,
+        isOnline,
+        isPresential,
         images: undefined,
       };
       if (pricingType === 'FIXED' || pricingType === 'HOURLY') {
@@ -129,7 +135,7 @@ const ServiceNew: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, description, pricingType, price, pickedUris, navigation, isEditing, serviceId]);
+  }, [title, description, pricingType, price, isOnline, isPresential, pickedUris, navigation, isEditing, serviceId]);
 
   async function pickImages() {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.7 });
@@ -207,6 +213,77 @@ const ServiceNew: React.FC = () => {
             />
           </>
         )}
+
+        <Text style={{ color: theme.COLORS.PRIMARY, marginBottom: 6 }}>Modalidade de atendimento</Text>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <TouchableOpacity
+            onPress={() => setIsOnline(!isOnline)}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: isOnline ? theme.COLORS.SECONDARY : '#eee',
+            }}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                borderWidth: 2,
+                borderColor: isOnline ? theme.COLORS.WHITE : theme.COLORS.PRIMARY,
+                backgroundColor: isOnline ? theme.COLORS.WHITE : 'transparent',
+                marginRight: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isOnline && (
+                <Text style={{ color: theme.COLORS.SECONDARY, fontSize: 12, fontWeight: 'bold' }}>✓</Text>
+              )}
+            </View>
+            <Text style={{ color: isOnline ? theme.COLORS.WHITE : theme.COLORS.PRIMARY }}>
+              Online
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setIsPresential(!isPresential)}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: isPresential ? theme.COLORS.SECONDARY : '#eee',
+            }}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                borderWidth: 2,
+                borderColor: isPresential ? theme.COLORS.WHITE : theme.COLORS.PRIMARY,
+                backgroundColor: isPresential ? theme.COLORS.WHITE : 'transparent',
+                marginRight: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isPresential && (
+                <Text style={{ color: theme.COLORS.SECONDARY, fontSize: 12, fontWeight: 'bold' }}>✓</Text>
+              )}
+            </View>
+            <Text style={{ color: isPresential ? theme.COLORS.WHITE : theme.COLORS.PRIMARY }}>
+              Presencial
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {!isEditing && (
           <>

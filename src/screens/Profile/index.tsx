@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useRef, useMemo } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, ActivityIndicator, Modal, FlatList, TouchableOpacity } from 'react-native';
+import { Alert, ActivityIndicator, Modal, FlatList, TouchableOpacity, View, Text, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import Slider from '@react-native-community/slider';
 import theme from '@theme/index';
 import { useAuth } from '@hooks/auth';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -35,6 +37,13 @@ const Profile: React.FC = () => {
   const [professions, setProfessions] = React.useState<Array<{ id: string; name: string; category: string | null }>>([]);
   const [selectedProfessionId, setSelectedProfessionId] = React.useState<string | null>(null);
   const [showProfessionPicker, setShowProfessionPicker] = React.useState(false);
+  
+  // Estados para raio de atendimento
+  const [radiusKm, setRadiusKm] = React.useState<number>(5);
+  const [showRadiusModal, setShowRadiusModal] = React.useState(false);
+  const [tempRadiusKm, setTempRadiusKm] = React.useState<number>(5);
+  const [mapReady, setMapReady] = React.useState(false);
+  const mapRef = useRef<MapView>(null);
 
   // Carregar profissões disponíveis
   const loadProfessions = React.useCallback(async () => {
@@ -55,6 +64,7 @@ const Profile: React.FC = () => {
         setUserAvatar(data.avatarUrl || null);
         setUserCover(data.coverUrl || null);
         setSelectedProfessionId(data.professionId || null);
+        setRadiusKm(data.radiusKm || 5);
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
@@ -107,8 +117,32 @@ const Profile: React.FC = () => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setAvatarUri(result.assets[0].uri);
-        setIsEditing(true);
+        const uri = result.assets[0].uri;
+        setAvatarUri(uri);
+        
+        // Salvar automaticamente
+        try {
+          setIsSaving(true);
+          const form = new FormData();
+          const name = `avatar-${Date.now()}.jpg`;
+          form.append('file', {
+            uri,
+            name,
+            type: 'image/jpeg',
+          } as any);
+          const { data } = await api.post('/professionals/me/avatar', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          if (data?.url) {
+            setUserAvatar(data.url);
+            setAvatarUri(null);
+          }
+        } catch (error: any) {
+          const message = error?.response?.data?.message || 'Erro ao atualizar foto de perfil';
+          Alert.alert('Erro', message);
+        } finally {
+          setIsSaving(false);
+        }
       }
     } catch (error) {
       console.error('Erro ao selecionar imagem:', error);
@@ -132,8 +166,32 @@ const Profile: React.FC = () => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setCoverUri(result.assets[0].uri);
-        setIsEditing(true);
+        const uri = result.assets[0].uri;
+        setCoverUri(uri);
+        
+        // Salvar automaticamente
+        try {
+          setIsSaving(true);
+          const form = new FormData();
+          const name = `cover-${Date.now()}.jpg`;
+          form.append('file', {
+            uri,
+            name,
+            type: 'image/jpeg',
+          } as any);
+          const { data } = await api.post('/professionals/me/cover', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          if (data?.url) {
+            setUserCover(data.url);
+            setCoverUri(null);
+          }
+        } catch (error: any) {
+          const message = error?.response?.data?.message || 'Erro ao atualizar foto de capa';
+          Alert.alert('Erro', message);
+        } finally {
+          setIsSaving(false);
+        }
       }
     } catch (error) {
       console.error('Erro ao selecionar imagem:', error);
@@ -144,57 +202,74 @@ const Profile: React.FC = () => {
   async function handleSave() {
     setIsSaving(true);
     try {
-      // Salva a bio e profissão
+      // Salva apenas a bio
       await api.put('/professionals/me/profile', { 
         bio,
-        professionId: selectedProfessionId,
       });
 
-      // Envia a foto de perfil se tiver sido selecionada
-      if (avatarUri) {
-        const form = new FormData();
-        const name = `avatar-${Date.now()}.jpg`;
-        form.append('file', {
-          uri: avatarUri,
-          name,
-          type: 'image/jpeg',
-        } as any);
-        const { data } = await api.post('/professionals/me/avatar', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        if (data?.url) {
-          setUserAvatar(data.url);
-          setAvatarUri(null);
-        }
-      }
-
-      // Envia a foto de capa se tiver sido selecionada
-      if (coverUri) {
-        const form = new FormData();
-        const name = `cover-${Date.now()}.jpg`;
-        form.append('file', {
-          uri: coverUri,
-          name,
-          type: 'image/jpeg',
-        } as any);
-        const { data } = await api.post('/professionals/me/cover', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        if (data?.url) {
-          setUserCover(data.url);
-          setCoverUri(null);
-        }
-      }
-
       setIsEditing(false);
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+      Alert.alert('Sucesso', 'Descrição atualizada com sucesso!');
     } catch (error: any) {
-      const message = error?.response?.data?.message || 'Erro ao atualizar perfil';
+      const message = error?.response?.data?.message || 'Erro ao atualizar descrição';
       Alert.alert('Erro', message);
     } finally {
       setIsSaving(false);
     }
   }
+
+  // Salvar raio automaticamente quando o modal fechar
+  const handleCloseRadiusModal = React.useCallback(async () => {
+    if (tempRadiusKm < 1 || tempRadiusKm > 100) {
+      Alert.alert('Erro', 'Por favor, selecione um raio válido entre 1 e 100 km.');
+      return;
+    }
+
+    // Se o valor mudou, salvar automaticamente
+    if (tempRadiusKm !== radiusKm) {
+      try {
+        await api.put('/professionals/me/radius', { radiusKm: tempRadiusKm });
+        setRadiusKm(tempRadiusKm);
+      } catch (error: any) {
+        const message = error?.response?.data?.message || 'Erro ao atualizar raio de atendimento';
+        Alert.alert('Erro', message);
+        // Reverter para o valor anterior em caso de erro
+        setTempRadiusKm(radiusKm);
+        return;
+      }
+    }
+    
+    setShowRadiusModal(false);
+  }, [tempRadiusKm, radiusKm]);
+
+  // Calcular delta do mapa baseado no raio (aproximadamente)
+  const mapDelta = useMemo(() => {
+    // Aproximação: 1 grau de latitude ≈ 111 km
+    // Para mostrar o círculo completo, precisamos de um delta maior que o raio
+    const radiusInDegrees = tempRadiusKm / 111;
+    const delta = Math.max(radiusInDegrees * 2.5, 0.05); // Mínimo de 0.05 para zoom razoável
+    return {
+      latitudeDelta: delta,
+      longitudeDelta: delta,
+    };
+  }, [tempRadiusKm]);
+
+  // Ajustar zoom do mapa quando o raio mudar
+  React.useEffect(() => {
+    if (showRadiusModal && selectedAddress?.latitude && selectedAddress?.longitude && mapRef.current && mapReady) {
+      mapRef.current.animateToRegion({
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
+        ...mapDelta,
+      }, 300);
+    }
+  }, [tempRadiusKm, showRadiusModal, selectedAddress, mapDelta, mapReady]);
+
+  // Resetar estado do mapa quando o modal fechar
+  React.useEffect(() => {
+    if (!showRadiusModal) {
+      setMapReady(false);
+    }
+  }, [showRadiusModal]);
 
   function renderSelectedAddress() {
     const title = selectedAddress?.street
@@ -205,26 +280,47 @@ const Profile: React.FC = () => {
       <S.SectionCard>
         <S.SectionHeader>
           <S.Icon name="location-outline" />
-          <S.SectionTitle>Endereço</S.SectionTitle>
+          <S.SectionTitle>Endereço e Raio de Atendimento</S.SectionTitle>
         </S.SectionHeader>
         <S.SectionBody>
           <S.PrimaryText>{title}</S.PrimaryText>
           <S.SecondaryText>{subtitle}</S.SecondaryText>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Address')}
-            style={{
-              marginTop: 12,
-              alignSelf: 'flex-start',
-              backgroundColor: theme.COLORS.SECONDARY,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              borderRadius: 8,
-            }}
-          >
-            <S.ButtonTextPrimary style={{ fontSize: 14 }}>
-              {selectedAddress ? 'Alterar endereço' : 'Definir endereço'}
-            </S.ButtonTextPrimary>
-          </TouchableOpacity>
+          <S.SecondaryText style={{ marginTop: 8 }}>
+            Raio de atendimento: {radiusKm} km
+          </S.SecondaryText>
+          <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Address')}
+              style={{
+                flex: 1,
+                backgroundColor: theme.COLORS.SECONDARY,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 8,
+              }}
+            >
+              <S.ButtonTextPrimary style={{ fontSize: 14, textAlign: 'center' }}>
+                {selectedAddress ? 'Alterar endereço' : 'Definir endereço'}
+              </S.ButtonTextPrimary>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setTempRadiusKm(radiusKm);
+                setShowRadiusModal(true);
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: theme.COLORS.PRIMARY,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 8,
+              }}
+            >
+              <S.ButtonTextPrimary style={{ fontSize: 14, textAlign: 'center' }}>
+                Alterar raio
+              </S.ButtonTextPrimary>
+            </TouchableOpacity>
+          </View>
         </S.SectionBody>
       </S.SectionCard>
     );
@@ -387,10 +483,22 @@ const Profile: React.FC = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    onPress={() => {
-                      setSelectedProfessionId(item.id);
-                      setIsEditing(true);
+                    onPress={async () => {
+                      const newProfessionId = item.id;
+                      setSelectedProfessionId(newProfessionId);
                       setShowProfessionPicker(false);
+                      
+                      // Salvar profissão automaticamente
+                      try {
+                        await api.put('/professionals/me/profile', { 
+                          professionId: newProfessionId,
+                        });
+                      } catch (error: any) {
+                        const message = error?.response?.data?.message || 'Erro ao atualizar profissão';
+                        Alert.alert('Erro', message);
+                        // Reverter em caso de erro
+                        setSelectedProfessionId(selectedProfessionId);
+                      }
                     }}
                     style={{
                       padding: 16,
@@ -411,6 +519,139 @@ const Profile: React.FC = () => {
                   </TouchableOpacity>
                 )}
               />
+            </S.ModalContainer>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Modal de alteração de raio de atendimento */}
+        <Modal
+          visible={showRadiusModal}
+          transparent
+          animationType="slide"
+          onRequestClose={handleCloseRadiusModal}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <S.ModalContainer>
+              <S.ModalHeader>
+                <S.ModalTitle>Raio de Atendimento</S.ModalTitle>
+                <TouchableOpacity onPress={handleCloseRadiusModal}>
+                  <Ionicons name="close" size={24} color={theme.COLORS.GREY_80} />
+                </TouchableOpacity>
+              </S.ModalHeader>
+              
+              {selectedAddress?.latitude && selectedAddress?.longitude ? (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {/* Mapa com círculo */}
+                  <View style={{ height: 300, marginHorizontal: 24, marginTop: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.COLORS.GREY_10 }}>
+                    {showRadiusModal && selectedAddress?.latitude && selectedAddress?.longitude && (
+                      <MapView
+                        ref={mapRef}
+                        style={{ flex: 1 }}
+                        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                        initialRegion={{
+                          latitude: selectedAddress.latitude,
+                          longitude: selectedAddress.longitude,
+                          latitudeDelta: mapDelta.latitudeDelta,
+                          longitudeDelta: mapDelta.longitudeDelta,
+                        }}
+                        scrollEnabled={false}
+                        zoomEnabled={false}
+                        rotateEnabled={false}
+                        pitchEnabled={false}
+                        loadingEnabled={true}
+                        onMapReady={() => {
+                          // Aguardar um pouco mais antes de renderizar os componentes filhos
+                          setTimeout(() => {
+                            setMapReady(true);
+                          }, 500);
+                        }}
+                        onError={(error) => {
+                          console.log('MapView error:', error);
+                        }}
+                      >
+                        {/* Renderizar Circle e Marker apenas quando o mapa estiver totalmente pronto */}
+                        {mapReady && (
+                          <>
+                            <Circle
+                              key={`circle-${tempRadiusKm}`}
+                              center={{
+                                latitude: selectedAddress.latitude,
+                                longitude: selectedAddress.longitude,
+                              }}
+                              radius={tempRadiusKm * 1000}
+                              fillColor={theme.COLORS.SECONDARY + '20'}
+                              strokeColor={theme.COLORS.SECONDARY}
+                              strokeWidth={2}
+                            />
+                            <Marker
+                              key="marker-center"
+                              coordinate={{
+                                latitude: selectedAddress.latitude,
+                                longitude: selectedAddress.longitude,
+                              }}
+                              pinColor={Platform.OS === 'ios' ? theme.COLORS.SECONDARY : undefined}
+                            />
+                          </>
+                        )}
+                      </MapView>
+                    )}
+                  </View>
+
+                  {/* Slider e informações */}
+                  <View style={{ padding: 24 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <S.SecondaryText>Raio de atendimento</S.SecondaryText>
+                      <S.PrimaryText style={{ fontSize: 18 }}>{tempRadiusKm} km</S.PrimaryText>
+                    </View>
+                    
+                    <Slider
+                      style={{ width: '100%', height: 40 }}
+                      minimumValue={1}
+                      maximumValue={100}
+                      step={1}
+                      value={tempRadiusKm}
+                      onValueChange={setTempRadiusKm}
+                      minimumTrackTintColor={theme.COLORS.SECONDARY}
+                      maximumTrackTintColor={theme.COLORS.GREY_20}
+                      thumbTintColor={theme.COLORS.SECONDARY}
+                    />
+                    
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                      <Text style={{ fontSize: 12, color: theme.COLORS.GREY_60 }}>1 km</Text>
+                      <Text style={{ fontSize: 12, color: theme.COLORS.GREY_60 }}>100 km</Text>
+                    </View>
+
+                    <S.SecondaryText style={{ marginTop: 16, marginBottom: 24 }}>
+                      Clientes fora deste raio não verão seu perfil nas buscas presenciais.
+                    </S.SecondaryText>
+
+                    <S.SecondaryText style={{ marginTop: 8, fontSize: 12, fontStyle: 'italic' }}>
+                      As alterações serão salvas automaticamente ao fechar.
+                    </S.SecondaryText>
+                  </View>
+                </ScrollView>
+              ) : (
+                <View style={{ padding: 24 }}>
+                  <S.SecondaryText style={{ marginBottom: 24, textAlign: 'center' }}>
+                    Você precisa definir um endereço antes de configurar o raio de atendimento.
+                  </S.SecondaryText>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowRadiusModal(false);
+                      navigation.navigate('Address');
+                    }}
+                    style={{
+                      backgroundColor: theme.COLORS.SECONDARY,
+                      borderRadius: 12,
+                      padding: 16,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <S.ButtonTextPrimary>Definir Endereço</S.ButtonTextPrimary>
+                  </TouchableOpacity>
+                </View>
+              )}
             </S.ModalContainer>
           </SafeAreaView>
         </Modal>

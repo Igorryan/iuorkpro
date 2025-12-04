@@ -261,10 +261,11 @@ export const Icon = styled(Ionicons).attrs({ size: 22, color: theme.COLORS.PRIMA
 export const ModalContainer = styled(View)`
   flex: 1;
   background-color: ${theme.COLORS.WHITE};
-  margin-top: 20%;
+  margin-top: 10%;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
   padding-top: 20px;
+  max-height: 90%;
 `;
 
 export const ModalHeader = styled(View)`
