@@ -81,11 +81,6 @@ export const Chat: React.FC = () => {
 
         setCurrentBudget(budget);
         setBudgetStatus(budget.status);
-        console.log('📊 [PRO-CHAT] Orçamento carregado:', {
-          budgetId: budget.id,
-          status: budget.status,
-          price: budget.price
-        });
       } else {
         // Resetar se não houver orçamentos
         setCurrentBudget(null);
@@ -102,11 +97,8 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     if (socket && user?.id && chatId) {
       const handleNewBudget = (data: any) => {
-        console.log('🔔 [PRO-CHAT] Novo orçamento recebido via WebSocket!', data);
-
         // Verificar se é para este chat/serviço
         if (data.chatId === chatId || data.serviceId === serviceId) {
-          console.log('✅ [PRO-CHAT] Orçamento corresponde a este chat - Recarregando...');
           // Sempre recarregar o orçamento quando receber evento
           setTimeout(() => {
             loadBudget();
@@ -203,7 +195,6 @@ export const Chat: React.FC = () => {
   const handleSendQuote = async (price: number, description: string) => {
     // Esta função não é mais necessária pois o componente BudgetQuoteCard
     // agora envia diretamente via API
-    console.log('handleSendQuote deprecated - BudgetQuoteCard sends directly');
   };
 
   return (

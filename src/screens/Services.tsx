@@ -24,7 +24,6 @@ const Services: React.FC = () => {
     }
     // Verifica se o usuário tem role PRO antes de fazer a requisição
     if (user?.role !== 'PRO') {
-      console.warn('Usuário não é PRO. Role atual:', user?.role);
       Alert.alert('Acesso negado', 'Esta funcionalidade é apenas para profissionais. Por favor, faça login com uma conta de profissional.');
       return;
     }

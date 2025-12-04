@@ -44,11 +44,9 @@ const Orders: React.FC = () => {
     // Conectar WebSocket para receber novos chats em tempo real
     if (socket && user?.id) {
       socket.emit('join-professional', user.id);
-      console.log('💼 Profissional conectado para notificações');
 
       // Ouvir novo chat
       socket.on(SocketEvents.NEW_CHAT, (newChat: Chat) => {
-        console.log('🔔 Novo chat recebido!', newChat);
         setChats((prev) => {
           // Evitar duplicatas
           if (prev.find(c => c.id === newChat.id)) {
@@ -60,7 +58,6 @@ const Orders: React.FC = () => {
 
       // Ouvir novas mensagens para atualizar a lista de chats
       socket.on(SocketEvents.NEW_MESSAGE, (newMessage: any) => {
-        console.log('🔔 Nova mensagem recebida na lista!', newMessage);
         setChats((prev) => {
           const chatIndex = prev.findIndex(c => c.id === newMessage.chatId);
           
@@ -94,8 +91,6 @@ const Orders: React.FC = () => {
 
       // Ouvir evento de mensagens lidas
       socket.on(SocketEvents.MESSAGE_READ, (data: { chatId: string; userId: string }) => {
-        console.log('📖 Mensagens lidas no chat:', data.chatId, 'por usuário:', data.userId);
-        
         // Se eu fui quem leu, zerar o contador de não lidas
         if (data.userId === user.id) {
           setChats((prev) => {
@@ -114,7 +109,6 @@ const Orders: React.FC = () => {
             }
             
             updatedChats[chatIndex] = chat;
-            console.log('   - Contador de não lidas zerado');
             return updatedChats;
           });
         }
@@ -127,13 +121,10 @@ const Orders: React.FC = () => {
         lastMessage?: { content: string; senderId: string; createdAt: string };
         budget?: any;
       }) => {
-        console.log('🔄 Atualização de chat recebida:', data);
-        
         setChats((prev) => {
           const chatIndex = prev.findIndex(c => c.id === data.chatId);
           
           if (chatIndex === -1) {
-            console.log('   - Chat não encontrado, recarregando lista');
             loadChats();
             return prev;
           }
@@ -176,7 +167,6 @@ const Orders: React.FC = () => {
           // Atualizar budget se fornecido
           if (data.budget) {
             chat.budget = data.budget;
-            console.log(`   - Budget atualizado: status = ${data.budget.status}`);
           }
           
           updatedChats[chatIndex] = chat;

@@ -259,13 +259,15 @@ export const ButtonTextDanger = styled(Text)`
 export const Icon = styled(Ionicons).attrs({ size: 22, color: theme.COLORS.PRIMARY })``;
 
 export const ModalContainer = styled(View)`
-  flex: 1;
   background-color: ${theme.COLORS.WHITE};
-  margin-top: 10%;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
   padding-top: 20px;
   max-height: 90%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 `;
 
 export const ModalHeader = styled(View)`

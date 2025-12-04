@@ -16,29 +16,11 @@ export function useSocket() {
   useEffect(() => {
     // Criar instância única do socket
     if (!socketInstance) {
-      console.log('🔌 [PRO-APP] Conectando ao WebSocket...');
       socketInstance = io(SOCKET_URL, {
         transports: ['websocket'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
-      });
-
-      socketInstance.on('connect', () => {
-        console.log('✅ [PRO-APP] WebSocket conectado:', socketInstance?.id);
-      });
-
-      socketInstance.on('disconnect', () => {
-        console.log('❌ [PRO-APP] WebSocket desconectado');
-      });
-
-      socketInstance.on('connect_error', (error) => {
-        console.error('[PRO-APP] Erro ao conectar WebSocket:', error.message);
-      });
-
-      // Adicionar listener para debug
-      socketInstance.onAny((event, ...args) => {
-        console.log(`📨 [PRO-APP] Evento recebido: ${event}`, args);
       });
     }
 

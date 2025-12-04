@@ -13,8 +13,6 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-project 'iworkpro.xcodeproj'
-
 target 'iworkpro' do
   use_expo_modules!
 

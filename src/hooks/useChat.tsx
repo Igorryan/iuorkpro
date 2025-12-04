@@ -52,7 +52,6 @@ export const useChat = ({ clientId, serviceId, userId, chatId: providedChatId }:
     // Profissional entra na sala de notificações gerais
     if (socket && userId) {
       socket.emit('join-professional', userId);
-      console.log('💼 Profissional conectado para notificações:', userId);
     }
   }, [clientId, serviceId, userId, socket]);
 
@@ -64,12 +63,9 @@ export const useChat = ({ clientId, serviceId, userId, chatId: providedChatId }:
       
       // Entrar na sala do chat
       socket.emit('join-chat', chatId);
-      console.log('📥 Entrou na sala do chat:', chatId);
 
       // Handler para novas mensagens
       const handleNewMessage = (newMessage: APIMessage) => {
-        console.log('🔔 Nova mensagem recebida:', newMessage);
-        
         // Não adicionar se for minha própria mensagem (já foi adicionada otimisticamente)
         if (newMessage.senderId === userId) {
           setMessages((prev) => 
@@ -98,7 +94,6 @@ export const useChat = ({ clientId, serviceId, userId, chatId: providedChatId }:
         // Sair da sala ao desmontar
         socket.emit('leave-chat', chatId);
         socket.off(SocketEvents.NEW_MESSAGE, handleNewMessage);
-        console.log('📤 Saiu da sala do chat:', chatId);
       };
     }
   }, [chatId, socket, userId]);
@@ -109,7 +104,6 @@ export const useChat = ({ clientId, serviceId, userId, chatId: providedChatId }:
       
       // Se chatId foi fornecido, usar ele diretamente
       if (providedChatId) {
-        console.log('💬 [PRO-CHAT] Usando chatId fornecido:', providedChatId);
         setChatId(providedChatId);
         await fetchMessages(providedChatId);
         return;

@@ -1,8 +1,10 @@
 import 'react-native-get-random-values';
+import 'react-native-reanimated';
 import { ThemeProvider } from 'styled-components';
 import theme from '@theme/index';
 import AppProvider from '@hooks/index';
 import { Routes } from '@routes/index';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import {
   useFonts,
@@ -21,15 +23,17 @@ export default function App() {
   });
 
   return (
-    <ThemeProvider theme={theme}>
-      {fontsLoaded ? (
-        <AppProvider>
-          <Routes />
-        </AppProvider>
-      ) : (
-        <View />
-      )}
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider theme={theme}>
+        {fontsLoaded ? (
+          <AppProvider>
+            <Routes />
+          </AppProvider>
+        ) : (
+          <View />
+        )}
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
