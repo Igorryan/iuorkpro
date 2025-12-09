@@ -1,11 +1,11 @@
 import React, { useRef, useMemo } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, ActivityIndicator, Modal, FlatList, TouchableOpacity, View, Text, Platform, ScrollView, useWindowDimensions } from 'react-native';
+import { Alert, ActivityIndicator, Modal, FlatList, TouchableOpacity, View, Text, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Slider from '@react-native-community/slider';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheetModal, { BottomSheetModalRef } from '@components/BottomSheetModal';
 import theme from '@theme/index';
 import { useAuth } from '@hooks/auth';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -22,7 +22,6 @@ const Profile: React.FC = () => {
   const { user, logout } = useAuth();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const [selectedAddress, setSelectedAddress] = React.useState<IAddress | undefined>(undefined);
   
   // Estados para edição de perfil
@@ -44,21 +43,8 @@ const Profile: React.FC = () => {
   const [radiusKm, setRadiusKm] = React.useState<number>(5);
   const [tempRadiusKm, setTempRadiusKm] = React.useState<number>(5);
   const [mapReady, setMapReady] = React.useState(false);
-  const [showRadiusSheet, setShowRadiusSheet] = React.useState(false);
   const mapRef = useRef<MapView>(null);
-  const radiusSheetRef = useRef<BottomSheet>(null);
-  const radiusSnapPoints = useMemo(() => {
-    // Calcular altura baseada na altura total da janela, não na viewport visível
-    const sheetHeight = Math.floor(windowHeight * 0.7);
-    return [sheetHeight];
-  }, [windowHeight]);
-  
-  // Função para fechar o bottom sheet (mesma lógica do backdrop)
-  const handleCloseRadiusSheet = React.useCallback(() => {
-    if (radiusSheetRef.current) {
-      radiusSheetRef.current.close();
-    }
-  }, []);
+  const radiusSheetRef = useRef<BottomSheetModalRef>(null);
 
   // Carregar profissões disponíveis
   const loadProfessions = React.useCallback(async () => {
@@ -231,31 +217,27 @@ const Profile: React.FC = () => {
   }
 
   // Salvar raio automaticamente quando o bottom sheet fechar
-  const handleRadiusSheetChange = React.useCallback(async (index: number) => {
-    if (index === -1) {
-      // Bottom sheet fechou
-      setMapReady(false);
-      setShowRadiusSheet(false);
-      
-      // Validar antes de salvar
-      if (tempRadiusKm < 1 || tempRadiusKm > 100) {
-        Alert.alert('Erro', 'Por favor, selecione um raio válido entre 1 e 100 km.');
-        // Reverter para o valor anterior
-        setTempRadiusKm(radiusKm);
-        return;
-      }
+  const handleRadiusSheetClose = React.useCallback(async () => {
+    setMapReady(false);
+    
+    // Validar antes de salvar
+    if (tempRadiusKm < 1 || tempRadiusKm > 100) {
+      Alert.alert('Erro', 'Por favor, selecione um raio válido entre 1 e 100 km.');
+      // Reverter para o valor anterior
+      setTempRadiusKm(radiusKm);
+      return;
+    }
 
-      // Se o valor mudou, salvar automaticamente
-      if (tempRadiusKm !== radiusKm) {
-        try {
-          await api.put('/professionals/me/radius', { radiusKm: tempRadiusKm });
-          setRadiusKm(tempRadiusKm);
-        } catch (error: any) {
-          const message = error?.response?.data?.message || 'Erro ao atualizar raio de atendimento';
-          Alert.alert('Erro', message);
-          // Reverter para o valor anterior em caso de erro
-          setTempRadiusKm(radiusKm);
-        }
+    // Se o valor mudou, salvar automaticamente
+    if (tempRadiusKm !== radiusKm) {
+      try {
+        await api.put('/professionals/me/radius', { radiusKm: tempRadiusKm });
+        setRadiusKm(tempRadiusKm);
+      } catch (error: any) {
+        const message = error?.response?.data?.message || 'Erro ao atualizar raio de atendimento';
+        Alert.alert('Erro', message);
+        // Reverter para o valor anterior em caso de erro
+        setTempRadiusKm(radiusKm);
       }
     }
   }, [tempRadiusKm, radiusKm]);
@@ -318,10 +300,8 @@ const Profile: React.FC = () => {
             <TouchableOpacity
               onPress={() => {
                 setTempRadiusKm(radiusKm);
-                setShowRadiusSheet(true);
-                // Aguardar o BottomSheet ser montado antes de abrir
                 setTimeout(() => {
-                  radiusSheetRef.current?.snapToIndex(0);
+                  radiusSheetRef.current?.open();
                 }, 100);
               }}
               style={{
@@ -541,149 +521,121 @@ const Profile: React.FC = () => {
       </S.Container>
       
       {/* Bottom Sheet renderizado fora do ScrollView para ficar fixo */}
-      <BottomSheet
+      <BottomSheetModal
         ref={radiusSheetRef}
-        index={showRadiusSheet ? 0 : -1}
-        snapPoints={radiusSnapPoints}
-        enablePanDownToClose={true}
-        enableOverDrag={false}
-        enableHandlePanningGesture={true}
-        enableDynamicSizing={false}
-        animateOnMount={true}
-        onChange={handleRadiusSheetChange}
-          backdropComponent={(props) => (
-            <BottomSheetBackdrop
-              {...props}
-              disappearsOnIndex={-1}
-              appearsOnIndex={0}
-              opacity={0.5}
-              pressBehavior="close"
-            />
-          )}
-          backgroundStyle={{ backgroundColor: theme.COLORS.WHITE }}
-          handleIndicatorStyle={{ backgroundColor: theme.COLORS.GREY_40 }}
-        >
-          <View>
-            <S.ModalHeader>
-              <S.ModalTitle>Raio de Atendimento</S.ModalTitle>
-              <TouchableOpacity onPress={handleCloseRadiusSheet}>
-                <Ionicons name="close" size={24} color={theme.COLORS.GREY_80} />
-              </TouchableOpacity>
-            </S.ModalHeader>
-            
-            {selectedAddress?.latitude && selectedAddress?.longitude ? (
-              <BottomSheetScrollView 
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 24 }}
-              >
-                {/* Mapa com círculo */}
-                <View style={{ height: 300, marginHorizontal: 24, marginTop: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.COLORS.GREY_10 }}>
-                  {selectedAddress?.latitude && selectedAddress?.longitude && (
-                    <MapView
-                      ref={mapRef}
-                      style={{ flex: 1 }}
-                      provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                      initialRegion={{
-                        latitude: selectedAddress.latitude,
-                        longitude: selectedAddress.longitude,
-                        latitudeDelta: mapDelta.latitudeDelta,
-                        longitudeDelta: mapDelta.longitudeDelta,
-                      }}
-                      scrollEnabled={false}
-                      zoomEnabled={false}
-                      rotateEnabled={false}
-                      pitchEnabled={false}
-                      loadingEnabled={true}
-                      onMapReady={() => {
-                        setTimeout(() => {
-                          setMapReady(true);
-                        }, 500);
-                      }}
-                    >
-                      {mapReady && (
-                        <>
-                          <Circle
-                            key={`circle-${tempRadiusKm}`}
-                            center={{
-                              latitude: selectedAddress.latitude,
-                              longitude: selectedAddress.longitude,
-                            }}
-                            radius={tempRadiusKm * 1000}
-                            fillColor={theme.COLORS.SECONDARY + '20'}
-                            strokeColor={theme.COLORS.SECONDARY}
-                            strokeWidth={2}
-                          />
-                          <Marker
-                            key="marker-center"
-                            coordinate={{
-                              latitude: selectedAddress.latitude,
-                              longitude: selectedAddress.longitude,
-                            }}
-                            pinColor={Platform.OS === 'ios' ? theme.COLORS.SECONDARY : undefined}
-                          />
-                        </>
-                      )}
-                    </MapView>
-                  )}
-                </View>
-
-                {/* Slider e informações */}
-                <View style={{ padding: 24 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <S.SecondaryText>Raio de atendimento</S.SecondaryText>
-                    <S.PrimaryText style={{ fontSize: 18 }}>{tempRadiusKm} km</S.PrimaryText>
-                  </View>
-                  
-                  <Slider
-                    style={{ width: '100%', height: 40 }}
-                    minimumValue={1}
-                    maximumValue={100}
-                    step={1}
-                    value={tempRadiusKm}
-                    onValueChange={setTempRadiusKm}
-                    minimumTrackTintColor={theme.COLORS.SECONDARY}
-                    maximumTrackTintColor={theme.COLORS.GREY_20}
-                    thumbTintColor={theme.COLORS.SECONDARY}
-                  />
-                  
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                    <Text style={{ fontSize: 12, color: theme.COLORS.GREY_60 }}>1 km</Text>
-                    <Text style={{ fontSize: 12, color: theme.COLORS.GREY_60 }}>100 km</Text>
-                  </View>
-
-                  <S.SecondaryText style={{ marginTop: 16, marginBottom: 24 }}>
-                    Clientes fora deste raio não verão seu perfil nas buscas presenciais.
-                  </S.SecondaryText>
-
-                  <S.SecondaryText style={{ marginTop: 8, fontSize: 12, fontStyle: 'italic' }}>
-                    As alterações serão salvas automaticamente ao fechar.
-                  </S.SecondaryText>
-                </View>
-              </BottomSheetScrollView>
-            ) : (
-              <View style={{ padding: 24 }}>
-                <S.SecondaryText style={{ marginBottom: 24, textAlign: 'center' }}>
-                  Você precisa definir um endereço antes de configurar o raio de atendimento.
-                </S.SecondaryText>
-                <TouchableOpacity
-                  onPress={() => {
-                    handleCloseRadiusSheet();
-                    navigation.navigate('Address');
+        title="Raio de Atendimento"
+        heightPercentage={0.7}
+        onClose={handleRadiusSheetClose}
+      >
+        {selectedAddress?.latitude && selectedAddress?.longitude ? (
+          <>
+            {/* Mapa com círculo */}
+            <View style={{ height: 300, marginHorizontal: 24, marginTop: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.COLORS.GREY_10 }}>
+              {selectedAddress?.latitude && selectedAddress?.longitude && (
+                <MapView
+                  ref={mapRef}
+                  style={{ flex: 1 }}
+                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                  initialRegion={{
+                    latitude: selectedAddress.latitude,
+                    longitude: selectedAddress.longitude,
+                    latitudeDelta: mapDelta.latitudeDelta,
+                    longitudeDelta: mapDelta.longitudeDelta,
                   }}
-                  style={{
-                    backgroundColor: theme.COLORS.SECONDARY,
-                    borderRadius: 12,
-                    padding: 16,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                  loadingEnabled={true}
+                  onMapReady={() => {
+                    setTimeout(() => {
+                      setMapReady(true);
+                    }, 500);
                   }}
                 >
-                  <S.ButtonTextPrimary>Definir Endereço</S.ButtonTextPrimary>
-                </TouchableOpacity>
+                  {mapReady && (
+                    <>
+                      <Circle
+                        key={`circle-${tempRadiusKm}`}
+                        center={{
+                          latitude: selectedAddress.latitude,
+                          longitude: selectedAddress.longitude,
+                        }}
+                        radius={tempRadiusKm * 1000}
+                        fillColor={theme.COLORS.SECONDARY + '20'}
+                        strokeColor={theme.COLORS.SECONDARY}
+                        strokeWidth={2}
+                      />
+                      <Marker
+                        key="marker-center"
+                        coordinate={{
+                          latitude: selectedAddress.latitude,
+                          longitude: selectedAddress.longitude,
+                        }}
+                        pinColor={Platform.OS === 'ios' ? theme.COLORS.SECONDARY : undefined}
+                      />
+                    </>
+                  )}
+                </MapView>
+              )}
+            </View>
+
+            {/* Slider e informações */}
+            <View style={{ padding: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <S.SecondaryText>Raio de atendimento</S.SecondaryText>
+                <S.PrimaryText style={{ fontSize: 18 }}>{tempRadiusKm} km</S.PrimaryText>
               </View>
-            )}
+              
+              <Slider
+                style={{ width: '100%', height: 40 }}
+                minimumValue={1}
+                maximumValue={100}
+                step={1}
+                value={tempRadiusKm}
+                onValueChange={setTempRadiusKm}
+                minimumTrackTintColor={theme.COLORS.SECONDARY}
+                maximumTrackTintColor={theme.COLORS.GREY_20}
+                thumbTintColor={theme.COLORS.SECONDARY}
+              />
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: theme.COLORS.GREY_60 }}>1 km</Text>
+                <Text style={{ fontSize: 12, color: theme.COLORS.GREY_60 }}>100 km</Text>
+              </View>
+
+              <S.SecondaryText style={{ marginTop: 16, marginBottom: 24 }}>
+                Clientes fora deste raio não verão seu perfil nas buscas presenciais.
+              </S.SecondaryText>
+
+              <S.SecondaryText style={{ marginTop: 8, fontSize: 12, fontStyle: 'italic' }}>
+                As alterações serão salvas automaticamente ao fechar.
+              </S.SecondaryText>
+            </View>
+          </>
+        ) : (
+          <View style={{ padding: 24 }}>
+            <S.SecondaryText style={{ marginBottom: 24, textAlign: 'center' }}>
+              Você precisa definir um endereço antes de configurar o raio de atendimento.
+            </S.SecondaryText>
+            <TouchableOpacity
+              onPress={() => {
+                radiusSheetRef.current?.close();
+                navigation.navigate('Address');
+              }}
+              style={{
+                backgroundColor: theme.COLORS.SECONDARY,
+                borderRadius: 12,
+                padding: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <S.ButtonTextPrimary>Definir Endereço</S.ButtonTextPrimary>
+            </TouchableOpacity>
           </View>
-        </BottomSheet>
+        )}
+      </BottomSheetModal>
     </SafeAreaView>
   );
 };
